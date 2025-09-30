@@ -1,0 +1,336 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Database, Play, Download, Search, Table as TableIcon, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { CreateTableDialog } from './create-table';
+
+export default function DatabasePage() {
+    const [selectedTable, setSelectedTable] = useState<string>('');
+    const [sqlQuery, setSqlQuery] = useState('SELECT * FROM users LIMIT 10;');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [createTableOpen, setCreateTableOpen] = useState(false);
+
+    // Use the centralized API client
+    const apiClient = {
+        getTables: () => api.getTables(),
+        getTableData: (tableName: string, page = 1, limit = 20) =>
+            api.getTableData(tableName, limit, (page - 1) * limit),
+        getTableSchema: (tableName: string) =>
+            apiClient.get(`/api/v1/admin/database/tables/${tableName}/schema`),
+        executeQuery: (query: string) => api.executeQuery(query),
+    };
+
+    const { data: tables, isLoading: tablesLoading } = useQuery({
+        queryKey: ['database-tables'],
+        queryFn: () => apiClient.getTables(),
+    });
+
+    const { data: tableData, isLoading: tableDataLoading } = useQuery({
+        queryKey: ['table-data', selectedTable],
+        queryFn: () => apiClient.getTableData(selectedTable),
+        enabled: !!selectedTable,
+    });
+
+    const { data: schema } = useQuery({
+        queryKey: ['table-schema', selectedTable],
+        queryFn: () => apiClient.getTableSchema(selectedTable),
+        enabled: !!selectedTable,
+    });
+
+    const executeQueryMutation = useMutation({
+        mutationFn: (query: string) => apiClient.executeQuery(query),
+        onSuccess: () => {
+            toast.success('Query executed successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || 'Query execution failed');
+        },
+    });
+
+    const handleExecuteQuery = () => {
+        if (!sqlQuery.trim()) {
+            toast.error('Please enter a SQL query');
+            return;
+        }
+        executeQueryMutation.mutate(sqlQuery);
+    };
+
+    const filteredTables = tables?.data?.filter((table: any) =>
+        table.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Database Explorer</h1>
+                    <p className="text-gray-500 mt-1">
+                        Browse tables, execute queries, and view schema
+                    </p>
+                </div>
+                <Button onClick={() => setCreateTableOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Table
+                </Button>
+            </div>
+
+            <CreateTableDialog open={createTableOpen} onOpenChange={setCreateTableOpen} />
+
+            <Tabs defaultValue="tables" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="tables">
+                        <TableIcon className="h-4 w-4 mr-2" />
+                        Tables
+                    </TabsTrigger>
+                    <TabsTrigger value="query">
+                        <Play className="h-4 w-4 mr-2" />
+                        Query Editor
+                    </TabsTrigger>
+                    <TabsTrigger value="schema">
+                        <Database className="h-4 w-4 mr-2" />
+                        Schema
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Tables Tab */}
+                <TabsContent value="tables" className="space-y-4">
+                    <div className="grid md:grid-cols-4 gap-4">
+                        {/* Tables List */}
+                        <Card className="md:col-span-1">
+                            <CardHeader>
+                                <CardTitle className="text-sm">Tables</CardTitle>
+                                <div className="relative mt-2">
+                                    <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <Input
+                                        placeholder="Search tables..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-8 h-9"
+                                    />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-1">
+                                    {tablesLoading ? (
+                                        <p className="text-sm text-gray-500">Loading...</p>
+                                    ) : filteredTables?.length === 0 ? (
+                                        <p className="text-sm text-gray-500">No tables found</p>
+                                    ) : (
+                                        filteredTables?.map((table: any) => (
+                                            <button
+                                                key={table.name}
+                                                onClick={() => setSelectedTable(table.name)}
+                                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedTable === table.name
+                                                    ? 'bg-blue-50 text-blue-600 font-medium'
+                                                    : 'hover:bg-gray-100'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span>{table.name}</span>
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {table.row_count || 0}
+                                                    </Badge>
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Table Data */}
+                        <Card className="md:col-span-3">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle>
+                                        {selectedTable ? `Table: ${selectedTable}` : 'Select a table'}
+                                    </CardTitle>
+                                    {selectedTable && (
+                                        <Button size="sm" variant="outline">
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Export
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {!selectedTable ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                        <p>Select a table from the list to view data</p>
+                                    </div>
+                                ) : tableDataLoading ? (
+                                    <p className="text-center py-12">Loading table data...</p>
+                                ) : (
+                                    <div className="overflow-auto max-h-96">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    {tableData?.data?.columns?.map((col: string) => (
+                                                        <TableHead key={col}>{col}</TableHead>
+                                                    ))}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {tableData?.data?.rows?.map((row: any, idx: number) => (
+                                                    <TableRow key={idx}>
+                                                        {tableData?.data?.columns?.map((col: string) => (
+                                                            <TableCell key={col} className="font-mono text-xs">
+                                                                {JSON.stringify(row[col])}
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                {/* Query Editor Tab */}
+                <TabsContent value="query" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>SQL Query Editor</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">
+                                    SQL Query (Read-only SELECT queries)
+                                </label>
+                                <textarea
+                                    value={sqlQuery}
+                                    onChange={(e) => setSqlQuery(e.target.value)}
+                                    className="w-full h-32 p-3 border rounded-md font-mono text-sm"
+                                    placeholder="SELECT * FROM users WHERE email LIKE '%@example.com' LIMIT 10;"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={handleExecuteQuery}
+                                    disabled={executeQueryMutation.isPending}
+                                >
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Execute Query
+                                </Button>
+                                <Button variant="outline" onClick={() => setSqlQuery('')}>
+                                    Clear
+                                </Button>
+                            </div>
+
+                            {/* Query Results */}
+                            {executeQueryMutation.data && (
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium">
+                                            Results ({executeQueryMutation.data.data.row_count} rows in{' '}
+                                            {executeQueryMutation.data.data.execution_time})
+                                        </p>
+                                        <Button size="sm" variant="outline">
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Export CSV
+                                        </Button>
+                                    </div>
+                                    <div className="overflow-auto max-h-96 border rounded-md">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    {executeQueryMutation.data.data.columns?.map((col: string) => (
+                                                        <TableHead key={col}>{col}</TableHead>
+                                                    ))}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {executeQueryMutation.data.data.rows?.map((row: any, idx: number) => (
+                                                    <TableRow key={idx}>
+                                                        {executeQueryMutation.data.data.columns?.map((col: string) => (
+                                                            <TableCell key={col} className="font-mono text-xs">
+                                                                {JSON.stringify(row[col])}
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Schema Tab */}
+                <TabsContent value="schema" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Database Schema</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                {schema?.data?.map((table: any) => (
+                                    <div key={table.table} className="border rounded-lg p-4">
+                                        <h3 className="font-semibold text-lg mb-3">{table.table}</h3>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Column</TableHead>
+                                                    <TableHead>Type</TableHead>
+                                                    <TableHead>Nullable</TableHead>
+                                                    <TableHead>Key</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {table.columns?.map((col: any) => (
+                                                    <TableRow key={col.name}>
+                                                        <TableCell className="font-medium">{col.name}</TableCell>
+                                                        <TableCell>
+                                                            <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                                {col.type}
+                                                            </code>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={col.nullable ? 'secondary' : 'outline'}>
+                                                                {col.nullable ? 'Yes' : 'No'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {col.primary_key && (
+                                                                <Badge variant="default">PRIMARY</Badge>
+                                                            )}
+                                                            {col.unique && (
+                                                                <Badge variant="secondary">UNIQUE</Badge>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}

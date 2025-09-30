@@ -1,0 +1,31 @@
+environment: development
+
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  read_timeout: 30
+  write_timeout: 30
+
+database:
+  host: "localhost"
+  port: "5433"
+  user: "app"
+  password: "secret"
+  name: "myapp"
+  ssl_mode: "disable"
+
+jwt:
+  secret: "your-super-secret-key-change-in-production"
+  access_token_expire_int: 15 # minutes
+  refresh_token_expire_int: 10080 # minutes (7 days)
+
+r2:
+  account_id: ""
+  access_key: ""
+  secret_key: ""
+  bucket: ""
+  endpoint: ""
+
+logging:
+  level: "info"
+  format: "json"

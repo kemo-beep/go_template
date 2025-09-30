@@ -1,0 +1,140 @@
+import axios from 'axios';
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+export const apiClient = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Add auth token to requests
+apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Handle auth errors
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+// API Types
+export interface User {
+    id: string;
+    email: string;
+    name: string;
+    is_active: boolean;
+    is_admin: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FileRecord {
+    id: number;
+    file_name: string;
+    file_size: number;
+    file_type: string;
+    r2_url: string;
+    is_public: boolean;
+    created_at: string;
+}
+
+export interface ApiLog {
+    timestamp: string;
+    method: string;
+    path: string;
+    status: number;
+    latency: string;
+    client_ip: string;
+    user_agent: string;
+    error?: string;
+}
+
+export interface Metric {
+    timestamp: string;
+    requests_per_minute: number;
+    error_rate: number;
+    avg_latency: number;
+}
+
+// API Functions
+export const api = {
+    // Auth
+    login: (email: string, password: string) =>
+        apiClient.post('/api/v1/auth/login', { email, password }),
+
+    // Users
+    getUsers: () => apiClient.get<User[]>('/api/v1/admin/users'),
+    getUser: (id: string) => apiClient.get<User>(`/api/v1/admin/users/${id}`),
+    createUser: (data: Partial<User>) => apiClient.post('/api/v1/admin/users', data),
+    updateUser: (id: string, data: Partial<User>) => apiClient.put(`/api/v1/admin/users/${id}`, data),
+    deleteUser: (id: string) => apiClient.delete(`/api/v1/admin/users/${id}`),
+    resetPassword: (id: string, newPassword: string) =>
+        apiClient.post(`/api/v1/admin/users/${id}/reset-password`, { password: newPassword }),
+
+    // Files
+    getFiles: () => apiClient.get('/api/v1/files'),
+    getFile: (id: string) => apiClient.get<FileRecord>(`/api/v1/files/${id}`),
+    uploadFile: (data: { file: File; path: string }) => {
+        const formData = new FormData();
+        formData.append('file', data.file);
+        formData.append('path', data.path);
+        return apiClient.post('/api/v1/files/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+    deleteFile: (id: string) => apiClient.delete(`/api/v1/files/${id}`),
+    getDownloadUrl: (id: string) => apiClient.get(`/api/v1/files/${id}/download`),
+    generateSignedUrl: (id: string) => apiClient.get(`/api/v1/files/${id}/download`),
+
+    // Database
+    getTables: () => apiClient.get('/api/v1/admin/database/tables'),
+    getTableData: (table: string, limit = 100, offset = 0) =>
+        apiClient.get(`/api/v1/admin/database/tables/${table}/data`, { params: { limit, offset } }),
+    executeQuery: (query: string) =>
+        apiClient.post('/api/v1/admin/database/query', { query }),
+    getSchema: () => apiClient.get('/api/v1/admin/database/schema'),
+    getTableSchema: (table: string) => apiClient.get(`/api/v1/admin/database/tables/${table}/schema`),
+
+    // Logs
+    getLogs: (params?: { limit?: number; level?: string; since?: string }) =>
+        apiClient.get<ApiLog[]>('/api/v1/admin/logs', { params }),
+    getMetrics: (params?: { from?: string; to?: string; interval?: string }) =>
+        apiClient.get<Metric[]>('/api/v1/admin/metrics', { params }),
+    getSentryErrors: () => apiClient.get('/api/v1/admin/sentry-errors'),
+
+    // Developer Tools
+    runMigration: (direction: 'up' | 'down', version?: string) =>
+        apiClient.post('/api/v1/admin/migrations/run', { direction, version }),
+    getMigrations: () => apiClient.get('/api/v1/admin/migrations'),
+    getFeatureFlags: () => apiClient.get('/api/v1/admin/feature-flags'),
+    createFeatureFlag: (name: string, enabled: boolean) =>
+        apiClient.post('/api/v1/admin/feature-flags', { name, enabled }),
+    updateFeatureFlag: (name: string, enabled: boolean) =>
+        apiClient.put(`/api/v1/admin/feature-flags/${name}`, { enabled }),
+    toggleFeatureFlag: (name: string, enabled: boolean) =>
+        apiClient.put(`/api/v1/admin/feature-flags/${name}`, { enabled }),
+    getBackgroundJobs: () => apiClient.get('/api/v1/admin/jobs'),
+    runBackgroundJob: (job: string, params?: any) =>
+        apiClient.post('/api/v1/admin/jobs/run', { job, params }),
+
+    // Settings
+    getSettings: () => apiClient.get('/api/v1/admin/settings'),
+    updateSettings: (settings: any) => apiClient.put('/api/v1/admin/settings', settings),
+
+    // Realtime
+    getRealtimePresence: () => apiClient.get('/api/v1/realtime/presence'),
+    getRealtimeStats: () => apiClient.get('/api/v1/realtime/stats'),
+};
