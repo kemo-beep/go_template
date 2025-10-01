@@ -14,6 +14,11 @@ database:
   name: "myapp"
   ssl_mode: "disable"
 
+redis:
+  address: "localhost:6379"
+  password: ""
+  db: 0
+
 jwt:
   secret: "your-secret-key-here"
   access_token_expire: "15m"

@@ -13,6 +13,7 @@ type Config struct {
 	Environment   string        `mapstructure:"environment"`
 	Server        Server        `mapstructure:"server"`
 	Database      Database      `mapstructure:"database"`
+	Redis         Redis         `mapstructure:"redis"`
 	JWT           JWT           `mapstructure:"jwt"`
 	R2            R2            `mapstructure:"r2"`
 	GoogleScripts GoogleScripts `mapstructure:"google_scripts"`
@@ -35,6 +36,13 @@ type Database struct {
 	Password string `mapstructure:"password"`
 	Name     string `mapstructure:"name"`
 	SSLMode  string `mapstructure:"ssl_mode"`
+}
+
+// Redis configuration
+type Redis struct {
+	Address  string `mapstructure:"address"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
 }
 
 // JWT configuration

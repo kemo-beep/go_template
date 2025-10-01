@@ -1,11 +1,14 @@
 package admin
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
+	"go-mobile-backend-template/internal/middleware"
 	"go-mobile-backend-template/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -174,12 +177,17 @@ func (h *DatabaseHandler) GetTableData(c *gin.Context) {
 		return
 	}
 
-	// Get total count
+	// Get total count using parameterized query
 	var total int64
-	h.db.Raw(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)).Scan(&total)
+	err = h.db.Raw("SELECT COUNT(*) FROM ?", tableName).Scan(&total).Error
+	if err != nil {
+		h.logger.Error("Failed to get table count", zap.Error(err), zap.String("table", tableName))
+		c.JSON(http.StatusInternalServerError, utils.ErrorResponseData("Failed to get table count"))
+		return
+	}
 
-	// Get data
-	rows, err := h.db.Raw(fmt.Sprintf("SELECT * FROM %s LIMIT %d OFFSET %d", tableName, limit, offset)).Rows()
+	// Get data using parameterized query
+	rows, err := h.db.Raw("SELECT * FROM ? LIMIT ? OFFSET ?", tableName, limit, offset).Rows()
 	if err != nil {
 		h.logger.Error("Failed to get table data", zap.Error(err), zap.String("table", tableName))
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponseData("Failed to get table data"))
@@ -254,14 +262,22 @@ func (h *DatabaseHandler) ExecuteQuery(c *gin.Context) {
 		return
 	}
 
-	// Only allow SELECT queries for safety
-	// In production, you might want more sophisticated query validation
-	if len(req.Query) < 6 || req.Query[:6] != "SELECT" && req.Query[:6] != "select" {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponseData("Only SELECT queries are allowed"))
+	// Enhanced SQL query validation
+	if valid, reason := h.validateSQLQuery(req.Query); !valid {
+		h.logger.Warn("Invalid SQL query attempted",
+			zap.String("query", req.Query),
+			zap.String("reason", reason),
+			zap.String("ip", c.ClientIP()),
+		)
+		c.JSON(http.StatusBadRequest, utils.ErrorResponseData("Invalid query: "+reason))
 		return
 	}
 
-	rows, err := h.db.Raw(req.Query).Rows()
+	// Execute query with timeout
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	rows, err := h.db.WithContext(ctx).Raw(req.Query).Rows()
 	if err != nil {
 		h.logger.Error("Failed to execute query", zap.Error(err), zap.String("query", req.Query))
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponseData("Failed to execute query: "+err.Error()))
@@ -314,6 +330,39 @@ func (h *DatabaseHandler) ExecuteQuery(c *gin.Context) {
 
 type ExecuteQueryRequest struct {
 	Query string `json:"query" binding:"required"`
+}
+
+// validateSQLQuery validates SQL queries for safety
+func (h *DatabaseHandler) validateSQLQuery(query string) (bool, string) {
+	query = strings.TrimSpace(query)
+
+	// Only allow SELECT queries for read operations
+	upperQuery := strings.ToUpper(query)
+	if !strings.HasPrefix(upperQuery, "SELECT") {
+		return false, "Only SELECT queries are allowed"
+	}
+
+	// Check for dangerous keywords
+	dangerousKeywords := []string{
+		"DROP", "DELETE", "INSERT", "UPDATE", "CREATE", "ALTER",
+		"EXEC", "EXECUTE", "SP_", "XP_", "OPENROWSET", "OPENDATASOURCE",
+		"BULK", "BULKINSERT", "BACKUP", "RESTORE", "SHUTDOWN",
+		"RECONFIGURE", "DBCC", "KILL", "DENY", "REVOKE",
+	}
+
+	for _, keyword := range dangerousKeywords {
+		if strings.Contains(upperQuery, keyword) {
+			return false, "Dangerous SQL keyword detected: " + keyword
+		}
+	}
+
+	// Check for SQL injection patterns
+	sqlSecurity := middleware.NewSQLSecurity(h.logger)
+	if valid, reason := sqlSecurity.ValidateSQLInput(query); !valid {
+		return false, reason
+	}
+
+	return true, ""
 }
 
 // GetDatabaseStats godoc
