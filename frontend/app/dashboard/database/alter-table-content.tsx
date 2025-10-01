@@ -240,8 +240,56 @@ export function AlterTableContent({ tableName }: AlterTableContentProps) {
     const migrationMutation = useMutation({
         mutationFn: async (migrationSQL: string) => {
             setMigrationStatus('running');
-            const response = await api.executeQuery(migrationSQL);
-            setMigrationId(response.data?.migration_id || Date.now().toString());
+
+            // Convert columns to changes format
+            const changes = columns.map(col => {
+                if (col.is_new) {
+                    return {
+                        action: 'add' as const,
+                        column_name: col.name,
+                        type: col.type,
+                        nullable: col.nullable,
+                        default_value: col.default_value,
+                        is_primary_key: col.is_primary_key,
+                        is_foreign_key: col.is_foreign_key,
+                        references: col.references,
+                    };
+                } else if (col.original_name && col.name !== col.original_name) {
+                    return {
+                        action: 'rename' as const,
+                        column_name: col.original_name,
+                        new_name: col.name,
+                    };
+                } else if (!originalColumns.some(orig => orig.name === col.name)) {
+                    return {
+                        action: 'drop' as const,
+                        column_name: col.name,
+                    };
+                } else {
+                    return {
+                        action: 'modify' as const,
+                        column_name: col.name,
+                        type: col.type,
+                        nullable: col.nullable,
+                        default_value: col.default_value,
+                    };
+                }
+            }).filter(change => change.action !== 'modify' ||
+                originalColumns.find(orig => orig.name === change.column_name)?.type !== change.type);
+
+            // Create migration
+            const response = await api.createMigration({
+                table_name: tableName,
+                changes: changes,
+                requested_by: 'current-user', // TODO: Get from auth context
+            });
+
+            const migrationId = response.data.data?.id || response.data.id;
+            setMigrationId(migrationId);
+
+            // Execute migration
+            await api.executeMigration(migrationId);
+
             return response;
         },
         onSuccess: () => {
@@ -260,8 +308,14 @@ export function AlterTableContent({ tableName }: AlterTableContentProps) {
     const rollbackMutation = useMutation({
         mutationFn: async () => {
             if (!migrationId) throw new Error('No migration to rollback');
-            // This would call a rollback API endpoint
-            toast.info('Rollback functionality coming soon');
+            await api.rollbackMigration(migrationId);
+        },
+        onSuccess: () => {
+            toast.success('Migration rolled back successfully');
+            setMigrationStatus('idle');
+            setMigrationId(null);
+            // Refresh schema
+            window.location.reload();
         },
         onError: (error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Rollback failed';

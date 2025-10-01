@@ -47,11 +47,11 @@ export function MigrationHistory() {
 
     const { data: migrations, isLoading } = useQuery({
         queryKey: ['migrations'],
-        queryFn: () => api.getMigrations?.() || Promise.resolve({ data: { data: [] } }),
+        queryFn: () => api.getMigrations({ limit: 50, offset: 0 }),
         refetchInterval: 5000, // Refresh every 5 seconds
     });
 
-    const migrationList = migrations?.data?.data || [];
+    const migrationList = migrations?.data?.migrations || [];
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -98,7 +98,7 @@ export function MigrationHistory() {
 
         if (window.confirm('Are you sure you want to rollback this migration?')) {
             try {
-                await api.executeQuery(migration.rollback_sql);
+                await api.rollbackMigration(migration.id);
                 alert('Migration rolled back successfully');
             } catch (error: unknown) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';

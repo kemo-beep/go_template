@@ -15,9 +15,11 @@ database:
   ssl_mode: "disable"
 
 jwt:
-  secret: "your-super-secret-key-change-in-production"
-  access_token_expire_int: 15 # minutes
-  refresh_token_expire_int: 10080 # minutes (7 days)
+  secret: "your-secret-key-here"
+  access_token_expire: "15m"
+  refresh_token_expire: "168h"
+  access_token_expire_int: 15
+  refresh_token_expire_int: 10080
 
 r2:
   account_id: ""
@@ -25,6 +27,12 @@ r2:
   secret_key: ""
   bucket: ""
   endpoint: ""
+
+google_scripts:
+  url: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
+  access_token: "YOUR_ACCESS_TOKEN"
+  project_id: "your-project-id"
+  migrations_dir: "./migrations"
 
 logging:
   level: "info"

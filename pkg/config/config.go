@@ -10,12 +10,13 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Environment string   `mapstructure:"environment"`
-	Server      Server   `mapstructure:"server"`
-	Database    Database `mapstructure:"database"`
-	JWT         JWT      `mapstructure:"jwt"`
-	R2          R2       `mapstructure:"r2"`
-	Logging     Logging  `mapstructure:"logging"`
+	Environment   string        `mapstructure:"environment"`
+	Server        Server        `mapstructure:"server"`
+	Database      Database      `mapstructure:"database"`
+	JWT           JWT           `mapstructure:"jwt"`
+	R2            R2            `mapstructure:"r2"`
+	GoogleScripts GoogleScripts `mapstructure:"google_scripts"`
+	Logging       Logging       `mapstructure:"logging"`
 }
 
 // Server configuration
@@ -52,6 +53,14 @@ type R2 struct {
 	SecretKey string `mapstructure:"secret_key"`
 	Bucket    string `mapstructure:"bucket"`
 	Endpoint  string `mapstructure:"endpoint"`
+}
+
+// Google Scripts configuration
+type GoogleScripts struct {
+	URL           string `mapstructure:"url"`
+	AccessToken   string `mapstructure:"access_token"`
+	ProjectID     string `mapstructure:"project_id"`
+	MigrationsDir string `mapstructure:"migrations_dir"`
 }
 
 // Logging configuration
@@ -112,6 +121,12 @@ func setDefaults() {
 	// JWT defaults
 	viper.SetDefault("jwt.access_token_expire_int", 15)     // minutes
 	viper.SetDefault("jwt.refresh_token_expire_int", 10080) // minutes (7 days)
+
+	// Google Scripts defaults
+	viper.SetDefault("google_scripts.url", "")
+	viper.SetDefault("google_scripts.access_token", "")
+	viper.SetDefault("google_scripts.project_id", "")
+	viper.SetDefault("google_scripts.migrations_dir", "./migrations")
 
 	// Logging defaults
 	viper.SetDefault("logging.level", "info")

@@ -8,11 +8,13 @@ import (
 	"go-mobile-backend-template/internal/api/v1/admin"
 	"go-mobile-backend-template/internal/api/v1/auth"
 	"go-mobile-backend-template/internal/api/v1/files"
+	"go-mobile-backend-template/internal/api/v1/migration"
 	realtimeAPI "go-mobile-backend-template/internal/api/v1/realtime"
 	"go-mobile-backend-template/internal/api/v1/users"
 	"go-mobile-backend-template/internal/middleware"
 	"go-mobile-backend-template/internal/realtime"
 	authService "go-mobile-backend-template/internal/services/auth"
+	migrationService "go-mobile-backend-template/internal/services/migration"
 	"go-mobile-backend-template/pkg/config"
 )
 
@@ -69,6 +71,15 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 	// Admin routes (admin only)
 	adminRoutes := router.Group("/admin")
 	admin.RegisterRoutes(adminRoutes, db, logger, cfg)
+
+	// Migration routes (admin only)
+	migrationConfig := &migrationService.GoogleScriptsConfig{
+		ScriptURL:     cfg.GoogleScripts.URL,
+		AccessToken:   cfg.GoogleScripts.AccessToken,
+		ProjectID:     cfg.GoogleScripts.ProjectID,
+		MigrationsDir: "./internal/db/migrations", // Use the existing migrations directory
+	}
+	migration.SetupMigrationRoutes(router, db, migrationConfig, jwtService)
 
 	// Real-time routes (WebSocket, presence, etc.)
 	realtimeRoutes := router.Group("/realtime")

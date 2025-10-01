@@ -69,6 +69,30 @@ export interface Metric {
     avg_latency: number;
 }
 
+export interface Migration {
+    id: string;
+    table_name: string;
+    sql_query: string;
+    rollback_sql?: string;
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'rolled_back';
+    error_message?: string;
+    created_at: string;
+    completed_at?: string;
+    created_by: string;
+}
+
+export interface ColumnChange {
+    action: 'add' | 'modify' | 'drop' | 'rename';
+    column_name: string;
+    new_name?: string;
+    type?: string;
+    nullable?: boolean;
+    default_value?: string;
+    is_primary_key?: boolean;
+    is_foreign_key?: boolean;
+    references?: string;
+}
+
 // API Functions
 export const api = {
     // Auth
@@ -137,4 +161,20 @@ export const api = {
     // Realtime
     getRealtimePresence: () => apiClient.get('/api/v1/realtime/presence'),
     getRealtimeStats: () => apiClient.get('/api/v1/realtime/stats'),
+
+    // Migrations
+    createMigration: (data: { table_name: string; changes: ColumnChange[]; requested_by: string }) =>
+        apiClient.post<Migration>('/api/v1/migrations', data),
+    getMigrations: (params?: { limit?: number; offset?: number }) =>
+        apiClient.get<{ migrations: Migration[]; limit: number; offset: number }>('/api/v1/migrations', { params }),
+    getMigration: (id: string) => apiClient.get<Migration>(`/api/v1/migrations/${id}`),
+    getMigrationHistory: (tableName: string, params?: { limit?: number; offset?: number }) =>
+        apiClient.get<{ migrations: Migration[]; table_name: string; limit: number; offset: number }>('/api/v1/migrations/history', {
+            params: { table_name: tableName, ...params }
+        }),
+    getMigrationFile: (id: string) => apiClient.get<{ id: string; table_name: string; sql_query: string; rollback_sql?: string; status: string }>(`/api/v1/migrations/${id}/file`),
+    validateMigration: (id: string) => apiClient.get<{ valid: boolean; warnings: string[]; errors: string[]; migration_id: string; table_name: string; status: string }>(`/api/v1/migrations/${id}/validate`),
+    executeMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/execute`),
+    rollbackMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/rollback`),
+    getMigrationStatus: (id: string) => apiClient.get<{ id: string; status: string; error_message?: string; created_at: string; completed_at?: string }>(`/api/v1/migration-status/${id}`),
 };
