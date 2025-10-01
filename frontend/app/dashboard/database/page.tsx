@@ -152,8 +152,8 @@ export default function DatabasePage() {
                                 />
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-1">
+                        <CardContent className='max-h-[500px] overflow-y-auto'>
+                            <div className="space-y-1 divide-y divide-gray-50">
                                 {tablesLoading ? (
                                     <p className="text-sm text-gray-500">Loading...</p>
                                 ) : filteredTables?.length === 0 ? (
@@ -177,6 +177,7 @@ export default function DatabasePage() {
                                         </button>
                                     ))
                                 )}
+                               
                             </div>
                         </CardContent>
                     </Card>
