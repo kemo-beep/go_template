@@ -23,8 +23,12 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
+            // Clear auth token and redirect to login
             localStorage.removeItem('auth_token');
-            window.location.href = '/login';
+            // Only redirect if we're not already on the login page
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
@@ -185,4 +189,7 @@ export const api = {
         apiClient.put(`/api/v1/admin/database/tables/${tableName}/rows/${pkValue}`, row),
     deleteTableRow: (tableName: string, pkValue: any) =>
         apiClient.delete(`/api/v1/admin/database/tables/${tableName}/rows/${pkValue}`),
+
+    // Auth validation
+    validateToken: () => apiClient.get('/api/v1/auth/validate'),
 };

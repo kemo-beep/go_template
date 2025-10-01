@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { api } from './api-client';
 
 interface User {
     id: string;
@@ -17,6 +18,7 @@ interface AuthState {
     logout: () => void;
     setUser: (user: User) => void;
     setHydrated: (hydrated: boolean) => void;
+    validateToken: () => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,6 +38,29 @@ export const useAuthStore = create<AuthState>()(
             },
             setUser: (user) => set({ user }),
             setHydrated: (hydrated) => set({ isHydrated: hydrated }),
+            validateToken: async () => {
+                try {
+                    const response = await api.validateToken();
+                    if (response.data.success) {
+                        const userData = response.data.data;
+                        set({
+                            user: {
+                                id: userData.user_id.toString(),
+                                email: userData.user_email as string,
+                                name: userData.user_email as string, // We don't have name in validate response
+                                is_admin: userData.is_admin as boolean,
+                            },
+                            isAuthenticated: true,
+                        });
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Token validation failed:', error);
+                    set({ user: null, token: null, isAuthenticated: false });
+                    localStorage.removeItem('auth_token');
+                }
+                return false;
+            },
         }),
         {
             name: 'auth-storage',

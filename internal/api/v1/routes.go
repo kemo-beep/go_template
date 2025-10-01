@@ -45,6 +45,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 	authProtected.Use(middleware.AuthMiddleware(jwtService))
 	{
 		authProtected.POST("/logout", authHandler.Logout)
+		authProtected.GET("/validate", authHandler.ValidateToken)
 	}
 
 	// User routes (all protected)

@@ -223,7 +223,7 @@ export default function DatabasePage() {
                                         filteredTables?.map((table: any) => (
                                             <div
                                                 key={table.name}
-                                                className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${openTabs.some(tab => tab.name === table.name)
+                                                className={`group flex items-center justify-between px-3 rounded-md text-sm transition-colors ${openTabs.some(tab => tab.name === table.name)
                                                     ? 'bg-blue-50 text-blue-600 font-medium'
                                                     : 'hover:bg-gray-100'
                                                     }`}
@@ -234,13 +234,13 @@ export default function DatabasePage() {
                                                 >
                                                     <TableIcon className="h-4 w-4 flex-shrink-0 text-gray-500" />
                                                     <span className="truncate">{table.name}</span>
-                                                    <Lock className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                                    {/* <Lock className="h-3 w-3 flex-shrink-0 text-gray-400" /> */}
                                                 </button>
 
                                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <Badge variant="secondary" className="text-xs">
+                                                    {/* <Badge variant="secondary" className="text-xs">
                                                         {table.row_count || 0}
-                                                    </Badge>
+                                                    </Badge> */}
 
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>

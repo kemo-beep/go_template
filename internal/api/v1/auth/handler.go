@@ -330,3 +330,32 @@ func (h *Handler) Logout(c *gin.Context) {
 
 	utils.SuccessResponse(c, http.StatusOK, "Logout successful", nil)
 }
+
+// ValidateToken validates the current access token
+// @Summary Validate access token
+// @Description Validate if the current access token is valid
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Router /auth/validate [get]
+func (h *Handler) ValidateToken(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	userEmail, _ := c.Get("user_email")
+	isAdmin, _ := c.Get("is_admin")
+
+	response := map[string]interface{}{
+		"user_id":    userID,
+		"user_email": userEmail,
+		"is_admin":   isAdmin,
+		"valid":      true,
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Token is valid", response)
+}
