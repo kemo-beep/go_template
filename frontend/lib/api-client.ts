@@ -142,7 +142,7 @@ export const api = {
     // Developer Tools
     runMigration: (direction: 'up' | 'down', version?: string) =>
         apiClient.post('/api/v1/admin/migrations/run', { direction, version }),
-    getMigrations: () => apiClient.get('/api/v1/admin/migrations'),
+    getGooseMigrations: () => apiClient.get('/api/v1/admin/migrations'),
     getFeatureFlags: () => apiClient.get('/api/v1/admin/feature-flags'),
     createFeatureFlag: (name: string, enabled: boolean) =>
         apiClient.post('/api/v1/admin/feature-flags', { name, enabled }),
@@ -177,4 +177,12 @@ export const api = {
     executeMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/execute`),
     rollbackMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/rollback`),
     getMigrationStatus: (id: string) => apiClient.get<{ id: string; status: string; error_message?: string; created_at: string; completed_at?: string }>(`/api/v1/migration-status/${id}`),
+
+    // Table data operations
+    insertTableRow: (tableName: string, row: Record<string, any>) =>
+        apiClient.post(`/api/v1/admin/database/tables/${tableName}/rows`, row),
+    updateTableRow: (tableName: string, pkValue: any, row: Record<string, any>) =>
+        apiClient.put(`/api/v1/admin/database/tables/${tableName}/rows/${pkValue}`, row),
+    deleteTableRow: (tableName: string, pkValue: any) =>
+        apiClient.delete(`/api/v1/admin/database/tables/${tableName}/rows/${pkValue}`),
 };

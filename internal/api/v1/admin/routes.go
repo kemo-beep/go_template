@@ -29,6 +29,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 	roleHandler := NewRoleHandler(db, logger)
 	dbHandler := NewDatabaseHandler(db, logger)
 	tableHandler := NewTableManagerHandler(db, logger)
+	tableDataHandler := NewTableDataHandler(db)
 
 	// User management routes
 	users := router.Group("/users")
@@ -69,5 +70,10 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 		database.PUT("/tables/:tableName/rename", tableHandler.RenameTable)
 		database.POST("/tables/:tableName/columns", tableHandler.AddColumn)
 		database.DELETE("/tables/:tableName/columns/:columnName", tableHandler.DropColumn)
+
+		// Table data operations (INSERT, UPDATE, DELETE rows)
+		database.POST("/tables/:tableName/rows", tableDataHandler.InsertTableRow)
+		database.PUT("/tables/:tableName/rows/:pkValue", tableDataHandler.UpdateTableRow)
+		database.DELETE("/tables/:tableName/rows/:pkValue", tableDataHandler.DeleteTableRow)
 	}
 }

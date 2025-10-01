@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { CreateTableDialog } from './create-table';
 import { AlterTableContent } from './alter-table-content';
 import { MigrationHistory } from './migration-history';
+import TableDataEditor from './table-data-editor';
 
 export default function DatabasePage() {
     const [selectedTable, setSelectedTable] = useState<string>('');
@@ -382,37 +383,7 @@ export default function DatabasePage() {
                                         <div className="space-y-6">
                                             {/* Table Data */}
                                             {openTabs.find(tab => tab.id === activeTab)?.type === 'table' && (
-                                                <div>
-                                                    <h3 className="font-semibold text-lg mb-4">Table Data</h3>
-                                                    {tableDataLoading ? (
-                                                        <p className="text-sm text-gray-500">Loading...</p>
-                                                    ) : tableData?.data?.data?.data?.length === 0 ? (
-                                                        <p className="text-sm text-gray-500">No data found</p>
-                                                    ) : (
-                                                        <div className="overflow-x-auto">
-                                                            <Table>
-                                                                <TableHeader>
-                                                                    <TableRow>
-                                                                        {tableData?.data?.data?.columns?.map((col: string) => (
-                                                                            <TableHead key={col}>{col}</TableHead>
-                                                                        ))}
-                                                                    </TableRow>
-                                                                </TableHeader>
-                                                                <TableBody>
-                                                                    {tableData?.data?.data?.data?.map((row: any, idx: number) => (
-                                                                        <TableRow key={idx}>
-                                                                            {tableData?.data?.data?.columns?.map((col: string) => (
-                                                                                <TableCell key={col}>
-                                                                                    {row[col] !== null ? String(row[col]) : 'NULL'}
-                                                                                </TableCell>
-                                                                            ))}
-                                                                        </TableRow>
-                                                                    ))}
-                                                                </TableBody>
-                                                            </Table>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <TableDataEditor tableName={selectedTable} />
                                             )}
 
                                             {/* SQL Query Editor */}
