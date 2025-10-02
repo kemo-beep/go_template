@@ -17,6 +17,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { api, ColumnChange } from '@/lib/api-client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { ColumnEditorSheet } from '@/components/column-editor-sheet';
 
 const COLUMN_TYPES = [
     'VARCHAR',
@@ -48,7 +49,7 @@ interface ColumnInfo {
     name: string;
     type: string;
     nullable: boolean;
-    default_value?: string;
+    default_value?: string | null;
     is_primary_key: boolean;
     is_foreign_key?: boolean;
     references?: string;
@@ -89,6 +90,8 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
     const [migrationStatus, setMigrationStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle');
     const [migrationId, setMigrationId] = useState<string | null>(null);
     const [apiDocsOpen, setApiDocsOpen] = useState(false);
+    const [columnEditorOpen, setColumnEditorOpen] = useState(false);
+    const [editingColumnIndex, setEditingColumnIndex] = useState<number | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -229,106 +232,42 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
 
     // Column management functions
     const addNewColumn = () => {
-        const newColumn: ColumnInfo = {
-            name: '',
-            type: 'VARCHAR',
-            nullable: true,
-            default_value: undefined,
-            is_primary_key: false,
-            is_foreign_key: false,
-            references: '',
-            references_table: '',
-            references_column: '',
-            on_delete: 'NO ACTION',
-            on_update: 'NO ACTION',
-            is_editing: true,
-            is_new: true,
-            constraints: {
-                unique: false,
-                check: '',
-                not_null: false,
-            },
-            indexes: {
-                name: '',
-                type: 'BTREE',
-                unique: false,
-            },
-        };
-        setColumns(prev => [...prev, newColumn]);
+        setEditingColumnIndex(null);
+        setColumnEditorOpen(true);
     };
 
     const startEditing = (index: number) => {
-        setColumns(prev => prev.map((col, i) =>
-            i === index ? { ...col, is_editing: true } : col
-        ));
+        setEditingColumnIndex(index);
+        setColumnEditorOpen(true);
     };
 
-    const cancelEditing = (index: number) => {
-        const column = columns[index];
-        if (column.is_new) {
-            // Remove new column if canceling
-            setColumns(prev => prev.filter((_, i) => i !== index));
+    const handleColumnSave = (columnData: ColumnInfo) => {
+        if (editingColumnIndex === null) {
+            // Adding new column
+            const newColumn: ColumnInfo = {
+                ...columnData,
+                is_editing: false,
+                is_new: true,
+                original_name: columnData.name,
+            };
+            setColumns(prev => [...prev, newColumn]);
+            toast.success('Column added successfully');
         } else {
-            // Restore original values
-            const originalColumn = originalColumns[index];
+            // Editing existing column
             setColumns(prev => prev.map((col, i) =>
-                i === index ? { ...originalColumn, is_editing: false } : col
+                i === editingColumnIndex ? { ...columnData, is_editing: false } : col
             ));
+            toast.success('Column updated successfully');
         }
+        setColumnEditorOpen(false);
+        setEditingColumnIndex(null);
     };
 
-    const saveColumn = (index: number) => {
-        const column = columns[index];
-
-        // Validation
-        if (!column.name.trim()) {
-            toast.error('Column name is required');
-            return;
-        }
-
-        // Check for duplicate names
-        const duplicateIndex = columns.findIndex((col, i) =>
-            i !== index && col.name.toLowerCase() === column.name.toLowerCase()
-        );
-        if (duplicateIndex !== -1) {
-            toast.error('Column name must be unique');
-            return;
-        }
-
-        // Check for multiple primary keys
-        if (column.is_primary_key) {
-            const existingPrimaryKey = columns.find((col, i) =>
-                i !== index && col.is_primary_key && !col.is_new
-            );
-            if (existingPrimaryKey) {
-                toast.error('Only one primary key is allowed per table');
-                return;
-            }
-        }
-
-        // Validate foreign key references
-        if (column.is_foreign_key) {
-            if (!column.references_table || !column.references_column) {
-                toast.error('Foreign key must specify both table and column references');
-                return;
-            }
-        }
-
-        // Validate check constraint
-        if (column.constraints?.check && column.constraints.check.trim()) {
-            // Basic SQL validation for check constraints
-            const checkExpr = column.constraints.check.trim();
-            if (!checkExpr.match(/^[a-zA-Z_][a-zA-Z0-9_]*\s*[<>=!]+.*$/)) {
-                toast.error('Check constraint must be a valid SQL expression (e.g., "age > 0")');
-                return;
-            }
-        }
-
-        setColumns(prev => prev.map((col, i) =>
-            i === index ? { ...col, is_editing: false } : col
-        ));
-        toast.success('Column saved');
+    const handleColumnCancel = () => {
+        setColumnEditorOpen(false);
+        setEditingColumnIndex(null);
     };
+
 
     const deleteColumn = (index: number) => {
         const column = columns[index];
@@ -363,7 +302,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                     column_name: col.name,
                     type: col.type,
                     nullable: col.nullable,
-                    default_value: col.default_value,
+                    default_value: col.default_value || undefined,
                     is_primary_key: col.is_primary_key,
                     is_foreign_key: col.is_foreign_key,
                     references: col.references || '',
@@ -415,7 +354,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                         column_name: col.name,
                         type: col.type,
                         nullable: col.nullable,
-                        default_value: col.default_value,
+                        default_value: col.default_value || undefined,
                         is_primary_key: col.is_primary_key,
                         is_foreign_key: col.is_foreign_key,
                         references: col.references || '',
@@ -1083,293 +1022,85 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                 <TableRow>
                                     {columns.map((column, index) => (
                                         <TableHead key={`type-${index}`} className="w-[200px]">
-                                            {column.is_editing ? (
-                                                <div className="space-y-2">
-                                                    <Select
-                                                        value={column.type}
-                                                        onValueChange={(value) => updateColumn(index, 'type', value)}
-                                                    >
-                                                        <SelectTrigger className="h-8">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {COLUMN_TYPES.map(type => (
-                                                                <SelectItem key={type} value={type}>
-                                                                    {type}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <div className="flex gap-2">
-                                                        <Select
-                                                            value={column.nullable ? 'true' : 'false'}
-                                                            onValueChange={(value) => updateColumn(index, 'nullable', value === 'true')}
-                                                        >
-                                                            <SelectTrigger className="h-8">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="true">Nullable</SelectItem>
-                                                                <SelectItem value="false">Not Null</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                    <Input
-                                                        value={column.default_value || ''}
-                                                        onChange={(e) => updateColumn(index, 'default_value', e.target.value || null)}
-                                                        placeholder="Default value"
-                                                        className="h-8"
-                                                    />
+                                            <div className="space-y-1">
+                                                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                    {column.type}
+                                                </code>
+                                                <div className="flex gap-1">
+                                                    <Badge variant={column.nullable ? 'secondary' : 'outline'} className="text-xs">
+                                                        {column.nullable ? 'Nullable' : 'Not Null'}
+                                                    </Badge>
                                                 </div>
-                                            ) : (
-                                                <div className="space-y-1">
-                                                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                                        {column.type}
-                                                    </code>
-                                                    <div className="flex gap-1">
-                                                        <Badge variant={column.nullable ? 'secondary' : 'outline'} className="text-xs">
-                                                            {column.nullable ? 'Nullable' : 'Not Null'}
-                                                        </Badge>
-                                                    </div>
-                                                    <span className="text-xs text-gray-500">
-                                                        {column.default_value || 'No default'}
-                                                    </span>
-                                                </div>
-                                            )}
+                                                <span className="text-xs text-gray-500">
+                                                    {column.default_value || 'No default'}
+                                                </span>
+                                            </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-24">
-                                        {columns.some(col => col.is_editing) && (
-                                            <div className="text-xs text-muted-foreground">Column Actions</div>
-                                        )}
-                                    </TableHead>
+                                    <TableHead className="w-24">Type & Properties</TableHead>
                                 </TableRow>
                                 <TableRow>
                                     {columns.map((column, index) => (
                                         <TableHead key={`constraints-${index}`} className="w-[200px]">
-                                            {column.is_editing ? (
-                                                <div className="space-y-2">
-                                                    {/* Primary Key */}
-                                                    <div className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`pk-${index}`}
-                                                            checked={column.is_primary_key}
-                                                            onChange={(e) => updateColumn(index, 'is_primary_key', e.target.checked)}
-                                                            className="rounded"
-                                                        />
-                                                        <label htmlFor={`pk-${index}`} className="text-xs font-medium">
-                                                            Primary Key
-                                                        </label>
-                                                    </div>
-
-                                                    {/* Foreign Key */}
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center space-x-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`fk-${index}`}
-                                                                checked={column.is_foreign_key || false}
-                                                                onChange={(e) => updateColumn(index, 'is_foreign_key', e.target.checked)}
-                                                                className="rounded"
-                                                            />
-                                                            <label htmlFor={`fk-${index}`} className="text-xs font-medium">
-                                                                Foreign Key
-                                                            </label>
-                                                        </div>
-                                                        {column.is_foreign_key && (
-                                                            <div className="space-y-1 pl-6">
-                                                                <Input
-                                                                    value={column.references_table || ''}
-                                                                    onChange={(e) => updateColumn(index, 'references_table', e.target.value)}
-                                                                    placeholder="Table"
-                                                                    className="h-6 text-xs"
-                                                                />
-                                                                <Input
-                                                                    value={column.references_column || ''}
-                                                                    onChange={(e) => updateColumn(index, 'references_column', e.target.value)}
-                                                                    placeholder="Column"
-                                                                    className="h-6 text-xs"
-                                                                />
-                                                                <div className="flex gap-1">
-                                                                    <Select
-                                                                        value={column.on_delete || 'NO ACTION'}
-                                                                        onValueChange={(value) => updateColumn(index, 'on_delete', value)}
-                                                                    >
-                                                                        <SelectTrigger className="h-6 text-xs">
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="CASCADE">CASCADE</SelectItem>
-                                                                            <SelectItem value="SET NULL">SET NULL</SelectItem>
-                                                                            <SelectItem value="RESTRICT">RESTRICT</SelectItem>
-                                                                            <SelectItem value="NO ACTION">NO ACTION</SelectItem>
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Constraints */}
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center space-x-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`unique-${index}`}
-                                                                checked={column.constraints?.unique || false}
-                                                                onChange={(e) => updateColumn(index, 'constraints', {
-                                                                    ...column.constraints,
-                                                                    unique: e.target.checked
-                                                                })}
-                                                                className="rounded"
-                                                            />
-                                                            <label htmlFor={`unique-${index}`} className="text-xs font-medium">
-                                                                Unique
-                                                            </label>
-                                                        </div>
-                                                        <Input
-                                                            value={column.constraints?.check || ''}
-                                                            onChange={(e) => updateColumn(index, 'constraints', {
-                                                                ...column.constraints,
-                                                                check: e.target.value
-                                                            })}
-                                                            placeholder="Check constraint (e.g., age > 0)"
-                                                            className="h-6 text-xs"
-                                                        />
-                                                    </div>
-
-                                                    {/* Index */}
-                                                    <div className="space-y-1">
-                                                        <Input
-                                                            value={column.indexes?.name || ''}
-                                                            onChange={(e) => updateColumn(index, 'indexes', {
-                                                                ...column.indexes,
-                                                                name: e.target.value
-                                                            })}
-                                                            placeholder="Index name"
-                                                            className="h-6 text-xs"
-                                                        />
-                                                        <div className="flex gap-1">
-                                                            <Select
-                                                                value={column.indexes?.type || 'BTREE'}
-                                                                onValueChange={(value) => updateColumn(index, 'indexes', {
-                                                                    ...column.indexes,
-                                                                    type: value as 'BTREE' | 'HASH' | 'GIN' | 'GIST'
-                                                                })}
-                                                            >
-                                                                <SelectTrigger className="h-6 text-xs">
-                                                                    <SelectValue />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="BTREE">BTREE</SelectItem>
-                                                                    <SelectItem value="HASH">HASH</SelectItem>
-                                                                    <SelectItem value="GIN">GIN</SelectItem>
-                                                                    <SelectItem value="GIST">GIST</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <div className="flex items-center space-x-1">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    id={`index-unique-${index}`}
-                                                                    checked={column.indexes?.unique || false}
-                                                                    onChange={(e) => updateColumn(index, 'indexes', {
-                                                                        ...column.indexes,
-                                                                        unique: e.target.checked
-                                                                    })}
-                                                                    className="rounded"
-                                                                />
-                                                                <label htmlFor={`index-unique-${index}`} className="text-xs">
-                                                                    Unique
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-1">
-                                                    <div className="flex gap-1 flex-wrap">
-                                                        {column.is_primary_key && (
-                                                            <Badge variant="default" className="text-xs">PK</Badge>
-                                                        )}
-                                                        {column.is_foreign_key && (
-                                                            <Badge variant="outline" className="text-xs">FK</Badge>
-                                                        )}
-                                                        {column.constraints?.unique && (
-                                                            <Badge variant="secondary" className="text-xs">UNIQUE</Badge>
-                                                        )}
-                                                        {column.constraints?.check && (
-                                                            <Badge variant="outline" className="text-xs">CHECK</Badge>
-                                                        )}
-                                                        {column.indexes?.name && (
-                                                            <Badge variant="outline" className="text-xs">INDEX</Badge>
-                                                        )}
-                                                    </div>
-                                                    {column.is_foreign_key && column.references_table && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            → {column.references_table}.{column.references_column}
-                                                        </div>
+                                            <div className="space-y-1">
+                                                <div className="flex gap-1 flex-wrap">
+                                                    {column.is_primary_key && (
+                                                        <Badge variant="default" className="text-xs">PK</Badge>
+                                                    )}
+                                                    {column.is_foreign_key && (
+                                                        <Badge variant="outline" className="text-xs">FK</Badge>
+                                                    )}
+                                                    {column.constraints?.unique && (
+                                                        <Badge variant="secondary" className="text-xs">UNIQUE</Badge>
                                                     )}
                                                     {column.constraints?.check && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {column.constraints.check}
-                                                        </div>
+                                                        <Badge variant="outline" className="text-xs">CHECK</Badge>
+                                                    )}
+                                                    {column.indexes?.name && (
+                                                        <Badge variant="outline" className="text-xs">INDEX</Badge>
                                                     )}
                                                 </div>
-                                            )}
+                                                {column.is_foreign_key && column.references_table && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        → {column.references_table}.{column.references_column}
+                                                    </div>
+                                                )}
+                                                {column.constraints?.check && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {column.constraints.check}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-24"></TableHead>
+                                    <TableHead className="w-24">Keys & Constraints</TableHead>
                                 </TableRow>
                                 <TableRow>
                                     {columns.map((column, index) => (
                                         <TableHead key={`actions-${index}`} className="w-[200px]">
                                             <div className="flex gap-1">
-                                                {column.is_editing ? (
-                                                    <>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => saveColumn(index)}
-                                                            className="h-6 w-6 p-0"
-                                                        >
-                                                            <Check className="h-3 w-3" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => cancelEditing(index)}
-                                                            className="h-6 w-6 p-0"
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </Button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => startEditing(index)}
-                                                            className="h-6 w-6 p-0"
-                                                        >
-                                                            <Edit2 className="h-3 w-3" />
-                                                        </Button>
-                                                        {!column.is_primary_key && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                onClick={() => deleteColumn(index)}
-                                                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                                                            >
-                                                                <Trash2 className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
-                                                    </>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => startEditing(index)}
+                                                    className="h-6 w-6 p-0"
+                                                >
+                                                    <Edit2 className="h-3 w-3" />
+                                                </Button>
+                                                {!column.is_primary_key && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => deleteColumn(index)}
+                                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
                                                 )}
                                             </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-24"></TableHead>
+                                    <TableHead className="w-24">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1527,6 +1258,16 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Column Editor Sheet */}
+            <ColumnEditorSheet
+                isOpen={columnEditorOpen}
+                onClose={handleColumnCancel}
+                onSave={handleColumnSave}
+                column={editingColumnIndex !== null ? columns[editingColumnIndex] : null}
+                isEditing={editingColumnIndex !== null}
+                existingColumns={columns}
+            />
 
         </div>
     );

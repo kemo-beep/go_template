@@ -616,13 +616,13 @@ export default function DatabasePage() {
             {/* Main Content */}
             {!showMigrationHistory && (
                 <div className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 h-[calc(100vh-200px)]">
                         {/* Tables Sidebar */}
-                        <div className="lg:col-span-1 space-y-4">
-                            <Card className="h-full">
-                                <CardHeader className="pb-3">
+                        <div className="lg:col-span-1">
+                            <Card className="h-full py-2 gap-1">
+                                <CardHeader className="">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg flex items-center gap-2">
+                                        <CardTitle className="text-base flex items-center gap-2">
                                             <TableIcon className="h-5 w-5" />
                                             Tables
                                             {tablesLoading && <Skeleton className="h-4 w-4 rounded" />}
@@ -682,8 +682,8 @@ export default function DatabasePage() {
                                         <div className="space-y-1 p-2">
                                             {/* Favorites Section */}
                                             {favoriteTablesList.length > 0 && (
-                                                <div className="space-y-1">
-                                                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                <div className="">
+                                                    <div className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                                         Favorites
                                                     </div>
                                                     {favoriteTablesList.map((table: any) => (
@@ -887,24 +887,26 @@ function TableItem({
     return (
         <div
             className={cn(
-                "group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 cursor-pointer",
+                "group flex items-center justify-between px-3 py-1 rounded text-sm transition-all duration-200 cursor-pointer",
                 isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "border-primary/10 text-primary shadow-sm"
                     : "hover:bg-muted/80"
             )}
             onClick={() => onOpenTable(table.name)}
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <TableIcon className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate font-medium">{table.name}</span>
-                {table.row_count !== undefined && (
-                    <Badge variant="secondary" className="text-xs ml-auto">
-                        {table.row_count}
-                    </Badge>
-                )}
+                <span className="truncate text-xs">{table.name}</span>
+                
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
+                
+                {table.row_count !== undefined && (
+                    <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums">
+                        {table.row_count}
+                    </Badge>
+                )}
                 <Button
                     variant="ghost"
                     size="sm"
