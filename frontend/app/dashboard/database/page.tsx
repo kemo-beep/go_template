@@ -823,7 +823,10 @@ export default function DatabasePage() {
                                         <div className="h-full">
                                             {/* Table Data */}
                                             {openTabs.find(tab => tab.id === activeTab)?.type === 'table' && (
-                                                <TableDataEditor tableName={selectedTable} />
+                                                <TableDataEditor
+                                                    tableName={selectedTable}
+                                                    onRefresh={refreshTables}
+                                                />
                                             )}
 
                                             {/* SQL Query Editor */}

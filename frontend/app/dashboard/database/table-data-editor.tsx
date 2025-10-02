@@ -10,11 +10,37 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { api } from '@/lib/api-client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+const COLUMN_TYPES = [
+    'VARCHAR',
+    'TEXT',
+    'INTEGER',
+    'BIGINT',
+    'SMALLINT',
+    'DECIMAL',
+    'NUMERIC',
+    'FLOAT',
+    'DOUBLE',
+    'BOOLEAN',
+    'DATE',
+    'TIME',
+    'TIMESTAMP',
+    'JSON',
+    'JSONB',
+    'UUID',
+    'SERIAL',
+    'BIGSERIAL',
+];
 
 interface TableDataEditorProps {
     tableName: string;
+    onRefresh?: () => void;
 }
 
 interface ColumnInfo {
@@ -29,7 +55,7 @@ interface RowData {
     [key: string]: any;
 }
 
-export default function TableDataEditor({ tableName }: TableDataEditorProps) {
+export default function TableDataEditor({ tableName, onRefresh }: TableDataEditorProps) {
     const [page, setPage] = useState(1);
     const [pageSize] = useState(50);
     const [editingRow, setEditingRow] = useState<RowData | null>(null);
@@ -37,6 +63,14 @@ export default function TableDataEditor({ tableName }: TableDataEditorProps) {
     const [newRow, setNewRow] = useState<RowData>({});
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [rowToDelete, setRowToDelete] = useState<RowData | null>(null);
+    const [addColumnOpen, setAddColumnOpen] = useState(false);
+    const [newColumn, setNewColumn] = useState({
+        name: '',
+        type: 'VARCHAR',
+        nullable: true,
+        default_value: '',
+    });
+    const [apiDocsOpen, setApiDocsOpen] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -136,6 +170,44 @@ export default function TableDataEditor({ tableName }: TableDataEditorProps) {
         },
     });
 
+    // Add column mutation
+    const addColumnMutation = useMutation({
+        mutationFn: async (columnData: typeof newColumn) => {
+            // Create migration for adding column
+            const changes = [{
+                action: 'add' as const,
+                column_name: columnData.name,
+                type: columnData.type,
+                nullable: columnData.nullable,
+                default_value: columnData.default_value || undefined,
+                is_primary_key: false,
+                is_foreign_key: false,
+                references: '',
+            }];
+
+            const response = await api.createMigration({
+                table_name: tableName,
+                changes: changes,
+                requested_by: 'current-user',
+            });
+
+            const migrationId = response.data.id;
+            await api.executeMigration(migrationId);
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tableSchema', tableName] });
+            queryClient.invalidateQueries({ queryKey: ['tableData', tableName] });
+            setAddColumnOpen(false);
+            setNewColumn({ name: '', type: 'VARCHAR', nullable: true, default_value: '' });
+            toast.success('Column added successfully');
+        },
+        onError: (error: unknown) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to add column';
+            toast.error(errorMessage);
+        },
+    });
+
     const handleEdit = (row: RowData) => {
         setEditingRow({ ...row });
     };
@@ -175,6 +247,21 @@ export default function TableDataEditor({ tableName }: TableDataEditorProps) {
         if (rowToDelete && primaryKey) {
             deleteRowMutation.mutate(rowToDelete[primaryKey]);
         }
+    };
+
+    const handleAddColumn = () => {
+        if (!newColumn.name.trim()) {
+            toast.error('Column name is required');
+            return;
+        }
+        addColumnMutation.mutate(newColumn);
+    };
+
+    const handleRefresh = () => {
+        queryClient.invalidateQueries({ queryKey: ['tableData', tableName] });
+        queryClient.invalidateQueries({ queryKey: ['tableSchema', tableName] });
+        onRefresh?.();
+        toast.success('Table refreshed');
     };
 
     const renderCellValue = (value: any) => {
@@ -258,10 +345,90 @@ export default function TableDataEditor({ tableName }: TableDataEditorProps) {
                         {totalRows} rows total
                     </p>
                 </div>
-                <Button onClick={handleAddRow} disabled={isAddingRow}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                </Button>
+                <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRefresh}
+                                    disabled={isLoading}
+                                >
+                                    <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Refresh table data</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    <Sheet open={apiDocsOpen} onOpenChange={setApiDocsOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <BookOpen className="h-4 w-4" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent className="w-[800px] sm:max-w-[800px]">
+                            <SheetHeader>
+                                <SheetTitle>API Documentation - {tableName}</SheetTitle>
+                                <SheetDescription>
+                                    API endpoints and documentation for the {tableName} table
+                                </SheetDescription>
+                            </SheetHeader>
+                            <div className="mt-6 space-y-4">
+                                <div className="p-4 border rounded-lg">
+                                    <h4 className="font-semibold mb-2">Table Endpoints</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">GET</Badge>
+                                            <code>/api/v1/tables/{tableName}</code>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">POST</Badge>
+                                            <code>/api/v1/tables/{tableName}/rows</code>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">PUT</Badge>
+                                            <code>/api/v1/tables/{tableName}/rows/:id</code>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">DELETE</Badge>
+                                            <code>/api/v1/tables/{tableName}/rows/:id</code>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border rounded-lg">
+                                    <h4 className="font-semibold mb-2">Schema Information</h4>
+                                    <div className="space-y-1 text-sm">
+                                        {columns.map((col) => (
+                                            <div key={col.name} className="flex justify-between">
+                                                <span className="font-mono">{col.name}</span>
+                                                <span className="text-muted-foreground">{col.type}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    <Button
+                        variant="outline"
+                        onClick={() => setAddColumnOpen(true)}
+                        disabled={addColumnMutation.isPending}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Column
+                    </Button>
+
+                    <Button onClick={handleAddRow} disabled={isAddingRow}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Row
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -434,6 +601,92 @@ export default function TableDataEditor({ tableName }: TableDataEditorProps) {
                             disabled={deleteRowMutation.isPending}
                         >
                             Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Column Dialog */}
+            <Dialog open={addColumnOpen} onOpenChange={setAddColumnOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Column</DialogTitle>
+                        <DialogDescription>
+                            Add a new column to the {tableName} table
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="column-name">Column Name</Label>
+                            <Input
+                                id="column-name"
+                                value={newColumn.name}
+                                onChange={(e) => setNewColumn(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Enter column name"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="column-type">Data Type</Label>
+                            <Select
+                                value={newColumn.type}
+                                onValueChange={(value) => setNewColumn(prev => ({ ...prev, type: value }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {COLUMN_TYPES.map(type => (
+                                        <SelectItem key={type} value={type}>
+                                            {type}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="nullable">Nullable</Label>
+                            <Select
+                                value={newColumn.nullable ? 'true' : 'false'}
+                                onValueChange={(value) => setNewColumn(prev => ({ ...prev, nullable: value === 'true' }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="true">Yes</SelectItem>
+                                    <SelectItem value="false">No</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="default-value">Default Value (Optional)</Label>
+                            <Input
+                                id="default-value"
+                                value={newColumn.default_value}
+                                onChange={(e) => setNewColumn(prev => ({ ...prev, default_value: e.target.value }))}
+                                placeholder="Enter default value"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAddColumnOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleAddColumn}
+                            disabled={addColumnMutation.isPending}
+                        >
+                            {addColumnMutation.isPending ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Adding...
+                                </>
+                            ) : (
+                                'Add Column'
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
