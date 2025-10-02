@@ -10,6 +10,10 @@ type TesttableResponse struct {
 
 	Familyname string `json:"family_name"`
 
+	Prefrence string `json:"prefrence"`
+
+	Preferences string `json:"preferences"`
+
 }
 
 // TesttableCreateRequest represents create test_table request
@@ -19,6 +23,10 @@ type TesttableCreateRequest struct {
 
 	Familyname string `json:"family_name" binding:""`
 
+	Prefrence string `json:"prefrence" binding:""`
+
+	Preferences string `json:"preferences" binding:""`
+
 }
 
 // TesttableUpdateRequest represents update test_table request
@@ -27,6 +35,10 @@ type TesttableUpdateRequest struct {
 	Name string `json:"name" binding:"omitempty"`
 
 	Familyname string `json:"family_name" binding:"omitempty"`
+
+	Prefrence string `json:"prefrence" binding:"omitempty"`
+
+	Preferences string `json:"preferences" binding:"omitempty"`
 
 }
 

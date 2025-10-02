@@ -10,6 +10,10 @@ type Testtable struct {
 
 	Familyname string `gorm:"" json:"family_name"`
 
+	Prefrence string `gorm:"" json:"prefrence"`
+
+	Preferences string `gorm:"" json:"preferences"`
+
 }
 
 // TableName returns the table name for Testtable

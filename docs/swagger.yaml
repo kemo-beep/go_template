@@ -984,6 +984,10 @@ definitions:
         type: string
       name:
         type: string
+      preferences:
+        type: string
+      prefrence:
+        type: string
     type: object
   test_table.TesttableResponse:
     properties:
@@ -993,12 +997,20 @@ definitions:
         type: integer
       name:
         type: string
+      preferences:
+        type: string
+      prefrence:
+        type: string
     type: object
   test_table.TesttableUpdateRequest:
     properties:
       family_name:
         type: string
       name:
+        type: string
+      preferences:
+        type: string
+      prefrence:
         type: string
     type: object
   user_2fa.PaginationInfo:
@@ -1294,6 +1306,69 @@ info:
   title: Go Mobile Backend Template API
   version: "1.0"
 paths:
+  /admin/auto-registry/apis:
+    get:
+      consumes:
+      - application/json
+      description: Get the list of currently registered auto-generated APIs
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get registered APIs
+      tags:
+      - admin
+  /admin/auto-registry/regenerate:
+    post:
+      consumes:
+      - application/json
+      description: Manually trigger regeneration of all auto-generated APIs
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Regenerate APIs
+      tags:
+      - admin
+  /admin/auto-registry/status:
+    get:
+      consumes:
+      - application/json
+      description: Get the current status of the auto-registry system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get auto-registry status
+      tags:
+      - admin
   /admin/database/query:
     post:
       consumes:

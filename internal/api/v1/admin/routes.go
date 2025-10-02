@@ -31,6 +31,9 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 	tableHandler := NewTableManagerHandler(db, logger)
 	tableDataHandler := NewTableDataHandler(db)
 
+	// Note: AutoRegistryHandler will be added when auto-registry is available
+	// For now, we'll add placeholder routes
+
 	// User management routes
 	users := router.Group("/users")
 	{
@@ -76,4 +79,38 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 		database.PUT("/tables/:tableName/rows/:pkValue", tableDataHandler.UpdateTableRow)
 		database.DELETE("/tables/:tableName/rows/:pkValue", tableDataHandler.DeleteTableRow)
 	}
+
+	// Auto-registry routes (placeholder - will be implemented when auto-registry is available)
+	router.GET("/auto-registry/status", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Auto-registry status endpoint placeholder",
+			"data": gin.H{
+				"registered_apis": 0,
+				"watcher_running": false,
+				"status":          "not_implemented",
+			},
+		})
+	})
+
+	router.GET("/auto-registry/apis", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Registered APIs endpoint placeholder",
+			"data": gin.H{
+				"apis":  []string{},
+				"count": 0,
+			},
+		})
+	})
+
+	router.POST("/auto-registry/regenerate", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "API regeneration triggered (placeholder)",
+			"data": gin.H{
+				"message": "APIs will be regenerated in the background",
+			},
+		})
+	})
 }

@@ -178,8 +178,8 @@ export const api = {
         }),
     getMigrationFile: (id: string) => apiClient.get<{ id: string; table_name: string; sql_query: string; rollback_sql?: string; status: string }>(`/api/v1/migrations/${id}/file`),
     validateMigration: (id: string) => apiClient.get<{ valid: boolean; warnings: string[]; errors: string[]; migration_id: string; table_name: string; status: string }>(`/api/v1/migrations/${id}/validate`),
-    executeMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/execute`),
-    rollbackMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/rollback`),
+    executeMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/execute`, {}),
+    rollbackMigration: (id: string) => apiClient.post(`/api/v1/migrations/${id}/rollback`, {}),
     getMigrationStatus: (id: string) => apiClient.get<{ id: string; status: string; error_message?: string; created_at: string; completed_at?: string }>(`/api/v1/migration-status/${id}`),
 
     // Table data operations

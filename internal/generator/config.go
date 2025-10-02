@@ -7,12 +7,24 @@ import (
 
 // GeneratorConfig holds configuration for the API generator
 type GeneratorConfig struct {
-	Enabled     bool                    `yaml:"enabled"`
-	AutoScan    bool                    `yaml:"auto_scan"`
-	OutputDir   string                  `yaml:"output_dir"`
-	PackageName string                  `yaml:"package_name"`
-	Tables      map[string]*TableConfig `yaml:"tables"`
-	Global      *GlobalConfig           `yaml:"global"`
+	Enabled             bool                    `yaml:"enabled"`
+	AutoScan            bool                    `yaml:"auto_scan"`
+	OutputDir           string                  `yaml:"output_dir"`
+	PackageName         string                  `yaml:"package_name"`
+	AutoRegistration    *AutoRegistrationConfig `yaml:"auto_registration"`
+	GenerateTypeScript  bool                    `yaml:"generate_typescript"`
+	TypeScriptOutput    string                  `yaml:"typescript_output_dir"`
+	TypeScriptAPIClient bool                    `yaml:"typescript_api_client"`
+	Tables              map[string]*TableConfig `yaml:"tables"`
+	Global              *GlobalConfig           `yaml:"global"`
+}
+
+// AutoRegistrationConfig holds configuration for auto-registration
+type AutoRegistrationConfig struct {
+	Enabled       bool          `yaml:"enabled"`
+	WatchInterval time.Duration `yaml:"watch_interval"`
+	AutoRestart   bool          `yaml:"auto_restart"`
+	HotReload     bool          `yaml:"hot_reload"`
 }
 
 // TableConfig holds configuration for a specific table

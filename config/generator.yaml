@@ -4,6 +4,18 @@ generator:
   output_dir: "./generated"
   package_name: "generated"
 
+  # Auto-registration and schema watching
+  auto_registration:
+    enabled: true
+    watch_interval: "30s"
+    auto_restart: true
+    hot_reload: true
+
+  # TypeScript generation for frontend
+  generate_typescript: true
+  typescript_output_dir: "./frontend/lib/types/generated"
+  typescript_api_client: true
+
   # Global configuration
   global:
     security:

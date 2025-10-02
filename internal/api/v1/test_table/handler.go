@@ -52,6 +52,10 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 
 		Familyname: req.Familyname,
 
+		Prefrence: req.Prefrence,
+
+		Preferences: req.Preferences,
+
 	}
 
 	ctx := context.Background()
@@ -68,6 +72,10 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 		Name: testTable.Name,
 
 		Familyname: testTable.Familyname,
+
+		Prefrence: testTable.Prefrence,
+
+		Preferences: testTable.Preferences,
 
 	}
 
@@ -114,6 +122,10 @@ func (h *Handler) GetTesttable(c *gin.Context) {
 		Name: testTable.Name,
 
 		Familyname: testTable.Familyname,
+
+		Prefrence: testTable.Prefrence,
+
+		Preferences: testTable.Preferences,
 
 	}
 
@@ -163,6 +175,10 @@ func (h *Handler) GetAllTesttables(c *gin.Context) {
 			Name: testTable.Name,
 
 			Familyname: testTable.Familyname,
+
+			Prefrence: testTable.Prefrence,
+
+			Preferences: testTable.Preferences,
 
 		})
 	}
@@ -233,6 +249,14 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 	testTable.Familyname = req.Familyname
 	
 
+	
+	testTable.Prefrence = req.Prefrence
+	
+
+	
+	testTable.Preferences = req.Preferences
+	
+
 
 	if err := h.testTableRepo.Update(ctx, testTable); err != nil {
 		h.logger.Error("Failed to update test_table", zap.Error(err))
@@ -247,6 +271,10 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 		Name: testTable.Name,
 
 		Familyname: testTable.Familyname,
+
+		Prefrence: testTable.Prefrence,
+
+		Preferences: testTable.Preferences,
 
 	}
 
