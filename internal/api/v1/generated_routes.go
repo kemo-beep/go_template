@@ -11,13 +11,13 @@ import (
 
 	"go-mobile-backend-template/internal/api/v1/user_roles"
 
+	"go-mobile-backend-template/internal/api/v1/files"
+
+	"go-mobile-backend-template/internal/api/v1/oauth_providers"
+
 	"go-mobile-backend-template/internal/api/v1/password_reset_tokens"
 
-	"go-mobile-backend-template/internal/api/v1/permissions"
-
-	"go-mobile-backend-template/internal/api/v1/role_permissions"
-
-	"go-mobile-backend-template/internal/api/v1/sessions"
+	"go-mobile-backend-template/internal/api/v1/roles"
 
 	"go-mobile-backend-template/internal/api/v1/test_table"
 
@@ -27,13 +27,13 @@ import (
 
 	"go-mobile-backend-template/internal/api/v1/email_verification_tokens"
 
-	"go-mobile-backend-template/internal/api/v1/files"
-
-	"go-mobile-backend-template/internal/api/v1/oauth_providers"
+	"go-mobile-backend-template/internal/api/v1/permissions"
 
 	"go-mobile-backend-template/internal/api/v1/refresh_tokens"
 
-	"go-mobile-backend-template/internal/api/v1/roles"
+	"go-mobile-backend-template/internal/api/v1/role_permissions"
+
+	"go-mobile-backend-template/internal/api/v1/sessions"
 
 )
 
@@ -44,13 +44,13 @@ func RegisterGeneratedRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.L
 
 	user_roles.RegisterRoutes(router, db, logger, cfg)
 
+	files.RegisterRoutes(router, db, logger, cfg)
+
+	oauth_providers.RegisterRoutes(router, db, logger, cfg)
+
 	password_reset_tokens.RegisterRoutes(router, db, logger, cfg)
 
-	permissions.RegisterRoutes(router, db, logger, cfg)
-
-	role_permissions.RegisterRoutes(router, db, logger, cfg)
-
-	sessions.RegisterRoutes(router, db, logger, cfg)
+	roles.RegisterRoutes(router, db, logger, cfg)
 
 	test_table.RegisterRoutes(router, db, logger, cfg)
 
@@ -60,12 +60,12 @@ func RegisterGeneratedRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.L
 
 	email_verification_tokens.RegisterRoutes(router, db, logger, cfg)
 
-	files.RegisterRoutes(router, db, logger, cfg)
-
-	oauth_providers.RegisterRoutes(router, db, logger, cfg)
+	permissions.RegisterRoutes(router, db, logger, cfg)
 
 	refresh_tokens.RegisterRoutes(router, db, logger, cfg)
 
-	roles.RegisterRoutes(router, db, logger, cfg)
+	role_permissions.RegisterRoutes(router, db, logger, cfg)
+
+	sessions.RegisterRoutes(router, db, logger, cfg)
 
 }
