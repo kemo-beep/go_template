@@ -256,10 +256,8 @@ func (pm *PerformanceMonitor) isDatabaseEndpoint(path string) bool {
 
 // GetPerformanceStats retrieves performance statistics
 func (pm *PerformanceMonitor) GetPerformanceStats(endpoint string, hours int) (map[string]interface{}, error) {
-	ctx := context.Background()
-
 	// Get metrics for the endpoint
-	key := fmt.Sprintf("perf:*:%s", endpoint)
+	// key := fmt.Sprintf("perf:*:%s", endpoint)
 
 	// This is a simplified version - in production you'd use Redis SCAN
 	// or a proper time-series database like InfluxDB
@@ -275,8 +273,6 @@ func (pm *PerformanceMonitor) GetPerformanceStats(endpoint string, hours int) (m
 
 // ClearCache clears cache for a specific pattern
 func (pm *PerformanceMonitor) ClearCache(pattern string) error {
-	ctx := context.Background()
-
 	// In production, you'd use Redis SCAN to find and delete keys
 	// For now, we'll just log the request
 	pm.logger.Info("Cache clear requested", zap.String("pattern", pattern))

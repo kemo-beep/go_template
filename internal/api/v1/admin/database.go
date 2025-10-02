@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -177,17 +178,17 @@ func (h *DatabaseHandler) GetTableData(c *gin.Context) {
 		return
 	}
 
-	// Get total count using parameterized query
+	// Get total count - using string formatting for table name (safe after validation)
 	var total int64
-	err = h.db.Raw("SELECT COUNT(*) FROM ?", tableName).Scan(&total).Error
+	err = h.db.Raw(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)).Scan(&total).Error
 	if err != nil {
 		h.logger.Error("Failed to get table count", zap.Error(err), zap.String("table", tableName))
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponseData("Failed to get table count"))
 		return
 	}
 
-	// Get data using parameterized query
-	rows, err := h.db.Raw("SELECT * FROM ? LIMIT ? OFFSET ?", tableName, limit, offset).Rows()
+	// Get data - using string formatting for table name (safe after validation)
+	rows, err := h.db.Raw(fmt.Sprintf("SELECT * FROM %s LIMIT %d OFFSET %d", tableName, limit, offset)).Rows()
 	if err != nil {
 		h.logger.Error("Failed to get table data", zap.Error(err), zap.String("table", tableName))
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponseData("Failed to get table data"))

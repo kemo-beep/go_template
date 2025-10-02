@@ -7,10 +7,12 @@ import (
 
 	"go-mobile-backend-template/internal/api/v1/admin"
 	"go-mobile-backend-template/internal/api/v1/auth"
-	"go-mobile-backend-template/internal/api/v1/files"
+
+	// "go-mobile-backend-template/internal/api/v1/files"  // temporarily commented out
 	"go-mobile-backend-template/internal/api/v1/migration"
 	realtimeAPI "go-mobile-backend-template/internal/api/v1/realtime"
-	"go-mobile-backend-template/internal/api/v1/users"
+
+	// "go-mobile-backend-template/internal/api/v1/users"  // temporarily commented out
 	"go-mobile-backend-template/internal/middleware"
 	"go-mobile-backend-template/internal/realtime"
 	authService "go-mobile-backend-template/internal/services/auth"
@@ -22,8 +24,8 @@ import (
 func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cfg *config.Config, hub *realtime.Hub) {
 	// Initialize handlers
 	authHandler := auth.NewHandler(db, logger, cfg)
-	usersHandler := users.NewHandler(db, logger)
-	filesHandler := files.NewHandler(db, logger, cfg)
+	// usersHandler := users.NewHandler(db, logger)  // temporarily commented out
+	// filesHandler := files.NewHandler(db, logger, cfg)  // temporarily commented out
 
 	// Initialize JWT service for auth middleware
 	jwtService := authService.NewJWTService(
@@ -48,26 +50,26 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 		authProtected.GET("/validate", authHandler.ValidateToken)
 	}
 
-	// User routes (all protected)
-	userRoutes := router.Group("/users")
-	userRoutes.Use(middleware.AuthMiddleware(jwtService))
-	{
-		userRoutes.GET("/me", usersHandler.GetProfile)
-		userRoutes.PUT("/me", usersHandler.UpdateProfile)
-		userRoutes.DELETE("/me", usersHandler.DeleteAccount)
-		userRoutes.POST("/me/change-password", usersHandler.ChangePassword)
-	}
+	// User routes (all protected) - temporarily commented out due to conflicts with generated APIs
+	// userRoutes := router.Group("/users")
+	// userRoutes.Use(middleware.AuthMiddleware(jwtService))
+	// {
+	// 	userRoutes.GET("/me", usersHandler.GetProfile)
+	// 	userRoutes.PUT("/me", usersHandler.UpdateProfile)
+	// 	userRoutes.DELETE("/me", usersHandler.DeleteAccount)
+	// 	userRoutes.POST("/me/change-password", usersHandler.ChangePassword)
+	// }
 
-	// File routes (all protected)
-	fileRoutes := router.Group("/files")
-	fileRoutes.Use(middleware.AuthMiddleware(jwtService))
-	{
-		fileRoutes.POST("/upload", filesHandler.Upload)
-		fileRoutes.GET("", filesHandler.ListFiles)
-		fileRoutes.GET("/:id", filesHandler.GetFile)
-		fileRoutes.GET("/:id/download", filesHandler.GetDownloadURL)
-		fileRoutes.DELETE("/:id", filesHandler.DeleteFile)
-	}
+	// File routes (all protected) - temporarily commented out due to conflicts with generated APIs
+	// fileRoutes := router.Group("/files")
+	// fileRoutes.Use(middleware.AuthMiddleware(jwtService))
+	// {
+	// 	fileRoutes.POST("/upload", filesHandler.Upload)
+	// 	fileRoutes.GET("", filesHandler.ListFiles)
+	// 	fileRoutes.GET("/:id", filesHandler.GetFile)
+	// 	fileRoutes.GET("/:id/download", filesHandler.GetDownloadURL)
+	// 	fileRoutes.DELETE("/:id", filesHandler.DeleteFile)
+	// }
 
 	// Admin routes (admin only)
 	adminRoutes := router.Group("/admin")
@@ -85,4 +87,8 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, logger *zap.Logger, cf
 	// Real-time routes (WebSocket, presence, etc.)
 	realtimeRoutes := router.Group("/realtime")
 	realtimeAPI.RegisterRoutes(realtimeRoutes, hub, logger, cfg)
+
+	// Auto-generated routes (if generated_routes.go exists)
+	// This will be populated by the generator
+	RegisterGeneratedRoutes(router, db, logger, cfg)
 }

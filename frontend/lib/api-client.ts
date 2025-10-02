@@ -129,8 +129,8 @@ export const api = {
 
     // Database
     getTables: () => apiClient.get('/api/v1/admin/database/tables'),
-    getTableData: (table: string, limit = 100, offset = 0) =>
-        apiClient.get(`/api/v1/admin/database/tables/${table}/data`, { params: { limit, offset } }),
+    getTableData: (table: string, page = 1, limit = 100) =>
+        apiClient.get(`/api/v1/admin/database/tables/${table}/data`, { params: { page, limit } }),
     executeQuery: (query: string) =>
         apiClient.post('/api/v1/admin/database/query', { query }),
     getSchema: () => apiClient.get('/api/v1/admin/database/schema'),

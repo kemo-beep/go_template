@@ -18,6 +18,7 @@ type Config struct {
 	R2            R2            `mapstructure:"r2"`
 	GoogleScripts GoogleScripts `mapstructure:"google_scripts"`
 	Logging       Logging       `mapstructure:"logging"`
+	Generator     interface{}   `mapstructure:"generator"`
 }
 
 // Server configuration

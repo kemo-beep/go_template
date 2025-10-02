@@ -7,6 +7,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 BINARY_NAME=server
 BINARY_UNIX=$(BINARY_NAME)_unix
+GENERATOR_BINARY=generator
 
 # Database parameters
 DB_HOST=localhost
@@ -17,7 +18,7 @@ DB_NAME=myapp
 DB_SSLMODE=disable
 DB_DSN=postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)
 
-.PHONY: all build clean test coverage deps run dev docker-build docker-run migrate-up migrate-down migrate-create setup lint format
+.PHONY: all build clean test coverage deps run dev docker-build docker-run migrate-up migrate-down migrate-create setup lint format generate generate-table generate-all
 
 # Default target
 all: test build
@@ -25,6 +26,10 @@ all: test build
 # Build the application
 build:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/server
+
+# Build the generator
+build-generator:
+	$(GOBUILD) -o $(GENERATOR_BINARY) -v ./cmd/generate
 
 # Build for Linux
 build-linux:
@@ -35,6 +40,8 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_UNIX)
+	rm -f $(GENERATOR_BINARY)
+	rm -rf ./generated
 
 # Run tests
 test:
@@ -112,6 +119,19 @@ install-tools:
 swagger:
 	swag init -g cmd/server/main.go -o docs/api
 
+# Auto-generate APIs for all tables
+generate-all: build-generator
+	@echo "🚀 Generating APIs for all tables..."
+	./$(GENERATOR_BINARY) -output ./generated -verbose
+
+# Auto-generate APIs for specific table
+generate-table: build-generator
+	@read -p "Enter table name: " table; \
+	./$(GENERATOR_BINARY) -table $$table -output ./generated -verbose
+
+# Generate APIs (alias for generate-all)
+generate: generate-all
+
 # Database operations
 db-create:
 	createdb -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) $(DB_NAME)
@@ -141,5 +161,9 @@ help:
 	@echo "  format         - Format code"
 	@echo "  install-tools  - Install development tools"
 	@echo "  swagger        - Generate Swagger docs"
+	@echo "  generate       - Auto-generate APIs for all tables"
+	@echo "  generate-all   - Auto-generate APIs for all tables"
+	@echo "  generate-table - Auto-generate APIs for specific table"
+	@echo "  build-generator- Build the API generator tool"
 	@echo "  db-create      - Create database"
 	@echo "  db-drop        - Drop database"

@@ -22,6 +22,7 @@ func DefaultCORSConfig() CORSConfig {
 		AllowedOrigins: []string{
 			"http://localhost:3000",
 			"http://localhost:3001",
+			"http://localhost:3002",
 			"https://yourdomain.com", // Replace with your production domain
 		},
 		AllowedMethods: []string{
@@ -134,8 +135,10 @@ func DevelopmentCORS() gin.HandlerFunc {
 		AllowedOrigins: []string{
 			"http://localhost:3000",
 			"http://localhost:3001",
+			"http://localhost:3002",
 			"http://127.0.0.1:3000",
 			"http://127.0.0.1:3001",
+			"http://127.0.0.1:3002",
 		},
 		AllowedMethods: []string{
 			"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS",

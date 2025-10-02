@@ -77,7 +77,7 @@ export default function DatabasePage() {
     const apiClient = {
         getTables: () => api.getTables(),
         getTableData: (tableName: string, page = 1, limit = 20) =>
-            api.getTableData(tableName, limit, (page - 1) * limit),
+            api.getTableData(tableName, page, limit),
         getTableSchema: (tableName: string) =>
             api.getTableSchema(tableName),
         executeQuery: (query: string) => api.executeQuery(query),
