@@ -17,6 +17,7 @@ import {
     Wrench,
     LayoutDashboard,
     Wifi,
+    BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -27,6 +28,7 @@ const navigation = [
     { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
     { name: 'Users', href: '/dashboard/users', icon: Users },
     { name: 'Database', href: '/dashboard/database', icon: Database },
+    { name: 'API Docs', href: '/dashboard/api-docs', icon: BookOpen },
     { name: 'Real-time', href: '/dashboard/realtime', icon: Wifi },
     { name: 'Storage', href: '/dashboard/storage', icon: FolderOpen },
     { name: 'Logs', href: '/dashboard/logs', icon: Activity },
@@ -56,14 +58,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             >
                 <div className="flex h-full flex-col">
                     {/* Logo */}
-                    <div className="flex h-16 items-center gap-2 border-b px-6">
-                        <Shield className="h-6 w-6 text-blue-600 flex-shrink-0" />
-                        <span className={cn(
-                            "font-semibold text-lg transition-opacity duration-300",
+                    <div className="flex h-16 items-center gap-3 border-b px-6">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent flex-shrink-0">
+                            <Shield className="h-5 w-5 text-primary-foreground" />
+                        </div>
+                        <div className={cn(
+                            "transition-opacity duration-300",
                             isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
                         )}>
-                            Admin Console
-                        </span>
+                            <div className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                                DevConsole
+                            </div>
+                            <div className="text-xs text-muted-foreground font-medium">
+                                Admin Dashboard
+                            </div>
+                        </div>
                     </div>
 
                     {/* Navigation */}
@@ -75,20 +84,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                                     key={item.name}
                                     href={item.href}
                                     className={cn(
-                                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300',
+                                        'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 relative',
                                         isActive
-                                            ? 'bg-blue-50 text-blue-600'
-                                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-l-2 border-primary shadow-sm'
+                                            : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground hover:shadow-sm'
                                     )}
                                     title={!isExpanded ? item.name : undefined}
                                 >
-                                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                                    <item.icon className={cn(
+                                        "h-4 w-4 flex-shrink-0 transition-colors",
+                                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground"
+                                    )} />
                                     <span className={cn(
                                         "transition-opacity duration-300",
                                         isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
                                     )}>
                                         {item.name}
                                     </span>
+                                    {isActive && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                    )}
                                 </Link>
                             );
                         })}
