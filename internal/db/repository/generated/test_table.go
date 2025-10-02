@@ -16,6 +16,10 @@ type Testtable struct {
 
 	Location string `gorm:"" json:"location"`
 
+	Wowedit string `gorm:"" json:"wowedit"`
+
+	Sammy string `gorm:"" json:"sammy"`
+
 }
 
 // TableName returns the table name for Testtable

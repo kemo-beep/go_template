@@ -242,40 +242,69 @@ export function AlterTableContent({ tableName }: AlterTableContentProps) {
             setMigrationStatus('running');
 
             // Convert columns to changes format
-            const changes = columns.map(col => {
-                if (col.is_new) {
-                    return {
-                        action: 'add' as const,
-                        column_name: col.name,
-                        type: col.type,
-                        nullable: col.nullable,
-                        default_value: col.default_value,
-                        is_primary_key: col.is_primary_key,
-                        is_foreign_key: col.is_foreign_key,
-                        references: col.references,
-                    };
-                } else if (col.original_name && col.name !== col.original_name) {
-                    return {
-                        action: 'rename' as const,
-                        column_name: col.original_name,
-                        new_name: col.name,
-                    };
-                } else if (!originalColumns.some(orig => orig.name === col.name)) {
-                    return {
-                        action: 'drop' as const,
-                        column_name: col.name,
-                    };
-                } else {
-                    return {
+            const changes = [];
+
+            // Find new columns
+            const newColumns = columns.filter(col => col.is_new);
+            newColumns.forEach(col => {
+                changes.push({
+                    action: 'add' as const,
+                    column_name: col.name,
+                    type: col.type,
+                    nullable: col.nullable,
+                    default_value: col.default_value,
+                    is_primary_key: col.is_primary_key,
+                    is_foreign_key: col.is_foreign_key,
+                    references: col.references,
+                });
+            });
+
+            // Find renamed columns
+            const renamedColumns = columns.filter(col =>
+                col.original_name && col.name !== col.original_name && !col.is_new
+            );
+            renamedColumns.forEach(col => {
+                changes.push({
+                    action: 'rename' as const,
+                    column_name: col.original_name!,
+                    new_name: col.name,
+                });
+            });
+
+            // Find modified columns
+            const modifiedColumns = columns.filter(col =>
+                !col.is_new &&
+                col.original_name &&
+                col.name === col.original_name &&
+                originalColumns.some(orig => orig.name === col.name)
+            );
+            modifiedColumns.forEach(col => {
+                const originalCol = originalColumns.find(orig => orig.name === col.name);
+                if (originalCol && (
+                    originalCol.type !== col.type ||
+                    originalCol.nullable !== col.nullable ||
+                    originalCol.default_value !== col.default_value
+                )) {
+                    changes.push({
                         action: 'modify' as const,
                         column_name: col.name,
                         type: col.type,
                         nullable: col.nullable,
                         default_value: col.default_value,
-                    };
+                    });
                 }
-            }).filter(change => change.action !== 'modify' ||
-                originalColumns.find(orig => orig.name === change.column_name)?.type !== change.type);
+            });
+
+            // Find deleted columns
+            const deletedColumns = originalColumns.filter(origCol =>
+                !columns.some(col => col.original_name === origCol.name || col.name === origCol.name)
+            );
+            deletedColumns.forEach(col => {
+                changes.push({
+                    action: 'drop' as const,
+                    column_name: col.name,
+                });
+            });
 
             // Create migration
             const response = await api.createMigration({

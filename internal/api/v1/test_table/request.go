@@ -16,6 +16,10 @@ type TesttableResponse struct {
 
 	Location string `json:"location"`
 
+	Wowedit string `json:"wowedit"`
+
+	Sammy string `json:"sammy"`
+
 }
 
 // TesttableCreateRequest represents create test_table request
@@ -31,6 +35,10 @@ type TesttableCreateRequest struct {
 
 	Location string `json:"location" binding:""`
 
+	Wowedit string `json:"wowedit" binding:""`
+
+	Sammy string `json:"sammy" binding:""`
+
 }
 
 // TesttableUpdateRequest represents update test_table request
@@ -45,6 +53,10 @@ type TesttableUpdateRequest struct {
 	Preferences string `json:"preferences" binding:"omitempty"`
 
 	Location string `json:"location" binding:"omitempty"`
+
+	Wowedit string `json:"wowedit" binding:"omitempty"`
+
+	Sammy string `json:"sammy" binding:"omitempty"`
 
 }
 

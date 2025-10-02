@@ -58,6 +58,10 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 
 		Location: req.Location,
 
+		Wowedit: req.Wowedit,
+
+		Sammy: req.Sammy,
+
 	}
 
 	ctx := context.Background()
@@ -80,6 +84,10 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 		Preferences: testTable.Preferences,
 
 		Location: testTable.Location,
+
+		Wowedit: testTable.Wowedit,
+
+		Sammy: testTable.Sammy,
 
 	}
 
@@ -132,6 +140,10 @@ func (h *Handler) GetTesttable(c *gin.Context) {
 		Preferences: testTable.Preferences,
 
 		Location: testTable.Location,
+
+		Wowedit: testTable.Wowedit,
+
+		Sammy: testTable.Sammy,
 
 	}
 
@@ -187,6 +199,10 @@ func (h *Handler) GetAllTesttables(c *gin.Context) {
 			Preferences: testTable.Preferences,
 
 			Location: testTable.Location,
+
+			Wowedit: testTable.Wowedit,
+
+			Sammy: testTable.Sammy,
 
 		})
 	}
@@ -269,6 +285,14 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 	testTable.Location = req.Location
 	
 
+	
+	testTable.Wowedit = req.Wowedit
+	
+
+	
+	testTable.Sammy = req.Sammy
+	
+
 
 	if err := h.testTableRepo.Update(ctx, testTable); err != nil {
 		h.logger.Error("Failed to update test_table", zap.Error(err))
@@ -289,6 +313,10 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 		Preferences: testTable.Preferences,
 
 		Location: testTable.Location,
+
+		Wowedit: testTable.Wowedit,
+
+		Sammy: testTable.Sammy,
 
 	}
 

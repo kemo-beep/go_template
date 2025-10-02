@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, RefreshCw, Loader2, Copy, ExternalLink, Code, Database, Type, Shield, Zap } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, RefreshCw, Loader2, Copy, ExternalLink, Code, Database, Type, Shield, Zap, Check, AlertCircle, Edit2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -51,6 +51,10 @@ interface ColumnInfo {
     default_value?: string;
     is_primary_key: boolean;
     is_foreign_key?: boolean;
+    references?: string;
+    is_editing?: boolean;
+    is_new?: boolean;
+    original_name?: string;
 }
 
 interface RowData {
@@ -65,13 +69,11 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
     const [newRow, setNewRow] = useState<RowData>({});
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [rowToDelete, setRowToDelete] = useState<RowData | null>(null);
-    const [addColumnOpen, setAddColumnOpen] = useState(false);
-    const [newColumn, setNewColumn] = useState({
-        name: '',
-        type: 'VARCHAR',
-        nullable: true,
-        default_value: '',
-    });
+    const [columns, setColumns] = useState<ColumnInfo[]>([]);
+    const [originalColumns, setOriginalColumns] = useState<ColumnInfo[]>([]);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [migrationStatus, setMigrationStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle');
+    const [migrationId, setMigrationId] = useState<string | null>(null);
     const [apiDocsOpen, setApiDocsOpen] = useState(false);
 
     const queryClient = useQueryClient();
@@ -90,8 +92,33 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
         enabled: !!tableName,
     });
 
-    const columns: ColumnInfo[] = schemaData?.data?.data?.columns || schemaData?.data?.columns || [];
+    // Initialize columns when schema is loaded
+    useEffect(() => {
+        if (schemaData?.data?.data?.columns) {
+            const schemaColumns = schemaData.data.data.columns.map((col: Record<string, unknown>) => ({
+                name: col.name as string,
+                type: col.type as string,
+                nullable: col.nullable as boolean,
+                default_value: col.default_value as string | null,
+                is_primary_key: (col.is_primary_key as boolean) || false,
+                is_foreign_key: (col.is_foreign_key as boolean) || false,
+                references: (col.references as string) || '',
+                is_editing: false,
+                is_new: false,
+                original_name: col.name as string,
+            }));
+            setColumns(schemaColumns);
+            setOriginalColumns(JSON.parse(JSON.stringify(schemaColumns)));
+        }
+    }, [schemaData]);
+
     const primaryKey = columns.find(col => col.is_primary_key)?.name;
+
+    // Check for changes
+    useEffect(() => {
+        const hasModifications = JSON.stringify(columns) !== JSON.stringify(originalColumns);
+        setHasChanges(hasModifications);
+    }, [columns, originalColumns]);
 
     // Fetch table data
     const { data: tableData, isLoading } = useQuery({
@@ -172,43 +199,203 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
         },
     });
 
-    // Add column mutation
-    const addColumnMutation = useMutation({
-        mutationFn: async (columnData: typeof newColumn) => {
-            // Create migration for adding column
-            const changes = [{
-                action: 'add' as const,
-                column_name: columnData.name,
-                type: columnData.type,
-                nullable: columnData.nullable,
-                default_value: columnData.default_value || undefined,
-                is_primary_key: false,
-                is_foreign_key: false,
-                references: '',
-            }];
+    // Column management functions
+    const addNewColumn = () => {
+        const newColumn: ColumnInfo = {
+            name: '',
+            type: 'VARCHAR',
+            nullable: true,
+            default_value: undefined,
+            is_primary_key: false,
+            is_foreign_key: false,
+            references: '',
+            is_editing: true,
+            is_new: true,
+        };
+        setColumns(prev => [...prev, newColumn]);
+    };
 
+    const startEditing = (index: number) => {
+        setColumns(prev => prev.map((col, i) =>
+            i === index ? { ...col, is_editing: true } : col
+        ));
+    };
+
+    const cancelEditing = (index: number) => {
+        const column = columns[index];
+        if (column.is_new) {
+            // Remove new column if canceling
+            setColumns(prev => prev.filter((_, i) => i !== index));
+        } else {
+            // Restore original values
+            const originalColumn = originalColumns[index];
+            setColumns(prev => prev.map((col, i) =>
+                i === index ? { ...originalColumn, is_editing: false } : col
+            ));
+        }
+    };
+
+    const saveColumn = (index: number) => {
+        const column = columns[index];
+
+        // Validation
+        if (!column.name.trim()) {
+            toast.error('Column name is required');
+            return;
+        }
+
+        // Check for duplicate names
+        const duplicateIndex = columns.findIndex((col, i) =>
+            i !== index && col.name.toLowerCase() === column.name.toLowerCase()
+        );
+        if (duplicateIndex !== -1) {
+            toast.error('Column name must be unique');
+            return;
+        }
+
+        setColumns(prev => prev.map((col, i) =>
+            i === index ? { ...col, is_editing: false } : col
+        ));
+        toast.success('Column saved');
+    };
+
+    const deleteColumn = (index: number) => {
+        const column = columns[index];
+        if (column.is_primary_key) {
+            toast.error('Cannot delete primary key column');
+            return;
+        }
+
+        setColumns(prev => prev.filter((_, i) => i !== index));
+        toast.success('Column deleted');
+    };
+
+    const updateColumn = (index: number, field: keyof ColumnInfo, value: unknown) => {
+        setColumns(prev => prev.map((col, i) =>
+            i === index ? { ...col, [field]: value } : col
+        ));
+    };
+
+    // Migration mutation
+    const migrationMutation = useMutation({
+        mutationFn: async () => {
+            setMigrationStatus('running');
+
+            // Convert columns to changes format
+            const changes = [];
+
+            // Find new columns
+            const newColumns = columns.filter(col => col.is_new);
+            newColumns.forEach(col => {
+                changes.push({
+                    action: 'add' as const,
+                    column_name: col.name,
+                    type: col.type,
+                    nullable: col.nullable,
+                    default_value: col.default_value,
+                    is_primary_key: col.is_primary_key,
+                    is_foreign_key: col.is_foreign_key,
+                    references: col.references || '',
+                });
+            });
+
+            // Find renamed columns
+            const renamedColumns = columns.filter(col =>
+                col.original_name && col.name !== col.original_name && !col.is_new
+            );
+            renamedColumns.forEach(col => {
+                changes.push({
+                    action: 'rename' as const,
+                    column_name: col.original_name!,
+                    new_name: col.name,
+                });
+            });
+
+            // Find modified columns
+            const modifiedColumns = columns.filter(col =>
+                !col.is_new &&
+                col.original_name &&
+                col.name === col.original_name &&
+                originalColumns.some(orig => orig.name === col.name)
+            );
+            modifiedColumns.forEach(col => {
+                const originalCol = originalColumns.find(orig => orig.name === col.name);
+                if (originalCol && (
+                    originalCol.type !== col.type ||
+                    originalCol.nullable !== col.nullable ||
+                    originalCol.default_value !== col.default_value
+                )) {
+                    changes.push({
+                        action: 'modify' as const,
+                        column_name: col.name,
+                        type: col.type,
+                        nullable: col.nullable,
+                        default_value: col.default_value,
+                    });
+                }
+            });
+
+            // Find deleted columns
+            const deletedColumns = originalColumns.filter(origCol =>
+                !columns.some(col => col.original_name === origCol.name || col.name === origCol.name)
+            );
+            deletedColumns.forEach(col => {
+                changes.push({
+                    action: 'drop' as const,
+                    column_name: col.name,
+                });
+            });
+
+            console.log('Changes to migrate:', changes);
+
+            if (changes.length === 0) {
+                throw new Error('No changes to migrate');
+            }
+
+            // Create migration
             const response = await api.createMigration({
                 table_name: tableName,
                 changes: changes,
                 requested_by: 'current-user',
             });
 
-            const migrationId = response.data.id;
+            console.log('Migration response:', response);
+            const migrationId = response.data?.data?.id || response.data?.id;
+            console.log('Migration ID:', migrationId);
+
+            if (!migrationId) {
+                console.error('Full response structure:', JSON.stringify(response, null, 2));
+                throw new Error('Failed to get migration ID from response');
+            }
+
+            setMigrationId(migrationId);
+
+            // Execute migration
             await api.executeMigration(migrationId);
+
             return response;
         },
         onSuccess: () => {
+            setMigrationStatus('completed');
+            toast.success('Migration completed successfully');
             queryClient.invalidateQueries({ queryKey: ['tableSchema', tableName] });
             queryClient.invalidateQueries({ queryKey: ['tableData', tableName] });
-            setAddColumnOpen(false);
-            setNewColumn({ name: '', type: 'VARCHAR', nullable: true, default_value: '' });
-            toast.success('Column added successfully');
+            onRefresh?.();
         },
         onError: (error: unknown) => {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to add column';
+            setMigrationStatus('error');
+            const errorMessage = error instanceof Error ? error.message : 'Migration failed';
             toast.error(errorMessage);
         },
     });
+
+    const handleSave = () => {
+        if (!hasChanges) {
+            toast.info('No changes to save');
+            return;
+        }
+        migrationMutation.mutate();
+    };
 
     const handleEdit = (row: RowData) => {
         setEditingRow({ ...row });
@@ -251,13 +438,6 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
         }
     };
 
-    const handleAddColumn = () => {
-        if (!newColumn.name.trim()) {
-            toast.error('Column name is required');
-            return;
-        }
-        addColumnMutation.mutate(newColumn);
-    };
 
     const handleRefresh = () => {
         queryClient.invalidateQueries({ queryKey: ['tableData', tableName] });
@@ -381,7 +561,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                 <BookOpen className="h-4 w-4" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent className="w-[900px] sm:max-w-[900px] overflow-y-auto">
+                        <SheetContent className="w-[900px] sm:max-w-[900px] overflow-y-auto px-6">
                             <SheetHeader>
                                 <SheetTitle className="flex items-center gap-2">
                                     <Database className="h-5 w-5" />
@@ -726,12 +906,31 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
 
                     <Button
                         variant="outline"
-                        onClick={() => setAddColumnOpen(true)}
-                        disabled={addColumnMutation.isPending}
+                        onClick={addNewColumn}
+                        disabled={migrationStatus === 'running'}
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Column
                     </Button>
+
+                    {hasChanges && (
+                        <Button
+                            onClick={handleSave}
+                            disabled={migrationStatus === 'running'}
+                        >
+                            {migrationStatus === 'running' ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Running Migration...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Save Changes
+                                </>
+                            )}
+                        </Button>
+                    )}
 
                     <Button onClick={handleAddRow} disabled={isAddingRow}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -740,23 +939,166 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 </div>
             </div>
 
+            {/* Migration Status */}
+            {migrationStatus !== 'idle' && (
+                <div className={cn(
+                    "p-3 rounded-lg border flex items-center gap-2",
+                    migrationStatus === 'running' && "bg-blue-50 border-blue-200",
+                    migrationStatus === 'completed' && "bg-green-50 border-green-200",
+                    migrationStatus === 'error' && "bg-red-50 border-red-200"
+                )}>
+                    {migrationStatus === 'running' && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {migrationStatus === 'completed' && <Check className="h-4 w-4 text-green-600" />}
+                    {migrationStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
+                    <span className="text-sm font-medium">
+                        {migrationStatus === 'running' && 'Migration in progress...'}
+                        {migrationStatus === 'completed' && 'Migration completed successfully'}
+                        {migrationStatus === 'error' && 'Migration failed'}
+                    </span>
+                </div>
+            )}
+
             <Card>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    {columns.map((column) => (
-                                        <TableHead key={column.name}>
-                                            <div className="flex items-center gap-2">
-                                                {column.name}
-                                                {column.is_primary_key && (
-                                                    <Badge variant="outline" className="text-xs">PK</Badge>
+                                    {columns.map((column, index) => (
+                                        <TableHead key={index} className="w-[200px]">
+                                            {column.is_editing ? (
+                                                <Input
+                                                    value={column.name}
+                                                    onChange={(e) => updateColumn(index, 'name', e.target.value)}
+                                                    placeholder="Column name"
+                                                    className="h-8"
+                                                />
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{column.name}</span>
+                                                    {column.is_primary_key && (
+                                                        <Badge variant="outline" className="text-xs">PK</Badge>
+                                                    )}
+                                                    {column.is_new && <Badge variant="secondary" className="text-xs">New</Badge>}
+                                                </div>
+                                            )}
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="w-24">Actions</TableHead>
+                                </TableRow>
+                                <TableRow>
+                                    {columns.map((column, index) => (
+                                        <TableHead key={`type-${index}`} className="w-[200px]">
+                                            {column.is_editing ? (
+                                                <div className="space-y-2">
+                                                    <Select
+                                                        value={column.type}
+                                                        onValueChange={(value) => updateColumn(index, 'type', value)}
+                                                    >
+                                                        <SelectTrigger className="h-8">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {COLUMN_TYPES.map(type => (
+                                                                <SelectItem key={type} value={type}>
+                                                                    {type}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <div className="flex gap-2">
+                                                        <Select
+                                                            value={column.nullable ? 'true' : 'false'}
+                                                            onValueChange={(value) => updateColumn(index, 'nullable', value === 'true')}
+                                                        >
+                                                            <SelectTrigger className="h-8">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="true">Nullable</SelectItem>
+                                                                <SelectItem value="false">Not Null</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <Input
+                                                        value={column.default_value || ''}
+                                                        onChange={(e) => updateColumn(index, 'default_value', e.target.value || null)}
+                                                        placeholder="Default value"
+                                                        className="h-8"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                        {column.type}
+                                                    </code>
+                                                    <div className="flex gap-1">
+                                                        <Badge variant={column.nullable ? 'secondary' : 'outline'} className="text-xs">
+                                                            {column.nullable ? 'Nullable' : 'Not Null'}
+                                                        </Badge>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">
+                                                        {column.default_value || 'No default'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="w-24">
+                                        {columns.some(col => col.is_editing) && (
+                                            <div className="text-xs text-muted-foreground">Column Actions</div>
+                                        )}
+                                    </TableHead>
+                                </TableRow>
+                                <TableRow>
+                                    {columns.map((column, index) => (
+                                        <TableHead key={`actions-${index}`} className="w-[200px]">
+                                            <div className="flex gap-1">
+                                                {column.is_editing ? (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => saveColumn(index)}
+                                                            className="h-6 w-6 p-0"
+                                                        >
+                                                            <Check className="h-3 w-3" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => cancelEditing(index)}
+                                                            className="h-6 w-6 p-0"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => startEditing(index)}
+                                                            className="h-6 w-6 p-0"
+                                                        >
+                                                            <Edit2 className="h-3 w-3" />
+                                                        </Button>
+                                                        {!column.is_primary_key && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => deleteColumn(index)}
+                                                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-24">Actions</TableHead>
+                                    <TableHead className="w-24"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -915,187 +1257,6 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 </DialogContent>
             </Dialog>
 
-            {/* Add Column Sheet */}
-            <Sheet open={addColumnOpen} onOpenChange={setAddColumnOpen}>
-                <SheetContent className="w-[500px] sm:max-w-[500px] px-4">
-                    <SheetHeader>
-                        <SheetTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5" />
-                            Add New Column
-                        </SheetTitle>
-                        <SheetDescription>
-                            Add a new column to the <span className="font-mono font-semibold">{tableName}</span> table
-                        </SheetDescription>
-                    </SheetHeader>
-
-                    <div className="space-y-4">
-                        {/* Column Information */}
-                        <div>
-
-                        </div>
-                        <div className="space-y-4">
-                            <div className='flex items-center gap-2 justify-between'>
-                                <Label htmlFor="column-name" className="text-sm font-medium">
-                                    Column Name <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="column-name"
-                                    value={newColumn.name}
-                                    onChange={(e) => setNewColumn(prev => ({ ...prev, name: e.target.value }))}
-                                    placeholder="Enter column name"
-                                    className="max-w-[50%]"
-                                />
-
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Use snake_case naming convention (e.g., user_name, created_at)
-                            </p>
-
-                            <div className='flex items-center gap-2 justify-between'>
-                                <Label htmlFor="column-type" className="text-sm font-medium">
-                                    Data Type <span className="text-red-500">*</span>
-                                </Label>
-                                <Select
-                                    value={newColumn.type}
-                                    onValueChange={(value) => setNewColumn(prev => ({ ...prev, type: value }))}
-                                >
-                                    <SelectTrigger className="">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {COLUMN_TYPES.map(type => (
-                                            <SelectItem key={type} value={type}>
-                                                <div className="flex items-center gap-2">
-                                                    <code className="text-xs">{type}</code>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {type === 'VARCHAR' && 'Variable character string'}
-                                                        {type === 'TEXT' && 'Unlimited text'}
-                                                        {type === 'INTEGER' && '32-bit integer'}
-                                                        {type === 'BIGINT' && '64-bit integer'}
-                                                        {type === 'BOOLEAN' && 'True/false value'}
-                                                        {type === 'DATE' && 'Date only'}
-                                                        {type === 'TIMESTAMP' && 'Date and time'}
-                                                        {type === 'JSON' && 'JSON data'}
-                                                        {type === 'UUID' && 'Universally unique identifier'}
-                                                    </span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className='flex items-center gap-2 justify-between'>
-                                <Label htmlFor="nullable" className="text-sm font-medium">
-                                    Nullable
-                                </Label>
-                                <Select
-                                    value={newColumn.nullable ? 'true' : 'false'}
-                                    onValueChange={(value) => setNewColumn(prev => ({ ...prev, nullable: value === 'true' }))}
-                                >
-                                    <SelectTrigger className="">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                Yes - Column can be empty
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="false">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                                No - Column is required
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <Label htmlFor="default-value" className="text-sm font-medium">
-                                    Default Value
-                                </Label>
-                                <Input
-                                    id="default-value"
-                                    value={newColumn.default_value}
-                                    onChange={(e) => setNewColumn(prev => ({ ...prev, default_value: e.target.value }))}
-                                    placeholder="Enter default value (optional)"
-                                    className=""
-                                />
-                                <p className="text-xs text-muted-foreground ">
-                                    Leave empty for no default value
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Preview */}
-                        <div className="border rounded-lg p-4 bg-muted/50">
-                            <h4 className="font-medium mb-2 flex items-center gap-2">
-                                <Database className="h-4 w-4" />
-                                Column Preview
-                            </h4>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="font-mono">{newColumn.name || 'column_name'}</span>
-                                    <Badge variant="outline" className="font-mono text-xs">
-                                        {newColumn.type}
-                                    </Badge>
-                                </div>
-                                <div className="flex justify-between text-muted-foreground">
-                                    <span>Nullable: {newColumn.nullable ? 'Yes' : 'No'}</span>
-                                    <span>Default: {newColumn.default_value || 'None'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Migration Info */}
-                        {/* <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <div className="flex items-start gap-2">
-                                <Shield className="h-4 w-4 text-blue-600 mt-0.5" />
-                                <div className="text-sm">
-                                    <p className="font-medium text-blue-900 dark:text-blue-100">Migration Required</p>
-                                    <p className="text-blue-700 dark:text-blue-300 mt-1">
-                                        This change will create a database migration that needs to be executed.
-                                        The migration will be applied automatically after confirmation.
-                                    </p>
-                                </div>
-                            </div>
-                        </div> */}
-                    </div>
-
-                    <SheetFooter className="mt-4 ">
-                        <div className='flex items-center gap-2'>
-                            <Button
-                                variant="outline"
-                                onClick={() => setAddColumnOpen(false)}
-                                disabled={addColumnMutation.isPending}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleAddColumn}
-                                disabled={addColumnMutation.isPending || !newColumn.name.trim()}
-                                className="min-w-[120px]"
-                            >
-                                {addColumnMutation.isPending ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Adding...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Add Column
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-
-                    </SheetFooter>
-                </SheetContent>
-            </Sheet>
         </div>
     );
 }

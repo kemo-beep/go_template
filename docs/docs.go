@@ -6844,6 +6844,12 @@ const docTemplate = `{
                 },
                 "prefrence": {
                     "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
+                    "type": "string"
                 }
             }
         },
@@ -6867,6 +6873,12 @@ const docTemplate = `{
                 },
                 "prefrence": {
                     "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
+                    "type": "string"
                 }
             }
         },
@@ -6886,6 +6898,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "prefrence": {
+                    "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
                     "type": "string"
                 }
             }

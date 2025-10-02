@@ -982,11 +982,17 @@ definitions:
     properties:
       family_name:
         type: string
+      location:
+        type: string
       name:
         type: string
       preferences:
         type: string
       prefrence:
+        type: string
+      sammy:
+        type: string
+      wowedit:
         type: string
     type: object
   test_table.TesttableResponse:
@@ -995,22 +1001,34 @@ definitions:
         type: string
       id:
         type: integer
+      location:
+        type: string
       name:
         type: string
       preferences:
         type: string
       prefrence:
+        type: string
+      sammy:
+        type: string
+      wowedit:
         type: string
     type: object
   test_table.TesttableUpdateRequest:
     properties:
       family_name:
         type: string
+      location:
+        type: string
       name:
         type: string
       preferences:
         type: string
       prefrence:
+        type: string
+      sammy:
+        type: string
+      wowedit:
         type: string
     type: object
   user_2fa.PaginationInfo:

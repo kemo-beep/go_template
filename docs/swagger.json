@@ -6841,6 +6841,12 @@
                 },
                 "prefrence": {
                     "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
+                    "type": "string"
                 }
             }
         },
@@ -6864,6 +6870,12 @@
                 },
                 "prefrence": {
                     "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
+                    "type": "string"
                 }
             }
         },
@@ -6883,6 +6895,12 @@
                     "type": "string"
                 },
                 "prefrence": {
+                    "type": "string"
+                },
+                "sammy": {
+                    "type": "string"
+                },
+                "wowedit": {
                     "type": "string"
                 }
             }
