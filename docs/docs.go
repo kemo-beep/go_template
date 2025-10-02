@@ -6833,6 +6833,9 @@ const docTemplate = `{
                 "family_name": {
                     "type": "string"
                 },
+                "location": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -6853,6 +6856,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "location": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -6868,6 +6874,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "family_name": {
+                    "type": "string"
+                },
+                "location": {
                     "type": "string"
                 },
                 "name": {

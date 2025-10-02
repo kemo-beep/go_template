@@ -14,6 +14,8 @@ type Testtable struct {
 
 	Preferences string `gorm:"" json:"preferences"`
 
+	Location string `gorm:"" json:"location"`
+
 }
 
 // TableName returns the table name for Testtable

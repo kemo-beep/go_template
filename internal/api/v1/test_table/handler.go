@@ -56,6 +56,8 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 
 		Preferences: req.Preferences,
 
+		Location: req.Location,
+
 	}
 
 	ctx := context.Background()
@@ -76,6 +78,8 @@ func (h *Handler) CreateTesttable(c *gin.Context) {
 		Prefrence: testTable.Prefrence,
 
 		Preferences: testTable.Preferences,
+
+		Location: testTable.Location,
 
 	}
 
@@ -126,6 +130,8 @@ func (h *Handler) GetTesttable(c *gin.Context) {
 		Prefrence: testTable.Prefrence,
 
 		Preferences: testTable.Preferences,
+
+		Location: testTable.Location,
 
 	}
 
@@ -179,6 +185,8 @@ func (h *Handler) GetAllTesttables(c *gin.Context) {
 			Prefrence: testTable.Prefrence,
 
 			Preferences: testTable.Preferences,
+
+			Location: testTable.Location,
 
 		})
 	}
@@ -257,6 +265,10 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 	testTable.Preferences = req.Preferences
 	
 
+	
+	testTable.Location = req.Location
+	
+
 
 	if err := h.testTableRepo.Update(ctx, testTable); err != nil {
 		h.logger.Error("Failed to update test_table", zap.Error(err))
@@ -275,6 +287,8 @@ func (h *Handler) UpdateTesttable(c *gin.Context) {
 		Prefrence: testTable.Prefrence,
 
 		Preferences: testTable.Preferences,
+
+		Location: testTable.Location,
 
 	}
 

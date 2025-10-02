@@ -14,6 +14,8 @@ type TesttableResponse struct {
 
 	Preferences string `json:"preferences"`
 
+	Location string `json:"location"`
+
 }
 
 // TesttableCreateRequest represents create test_table request
@@ -27,6 +29,8 @@ type TesttableCreateRequest struct {
 
 	Preferences string `json:"preferences" binding:""`
 
+	Location string `json:"location" binding:""`
+
 }
 
 // TesttableUpdateRequest represents update test_table request
@@ -39,6 +43,8 @@ type TesttableUpdateRequest struct {
 	Prefrence string `json:"prefrence" binding:"omitempty"`
 
 	Preferences string `json:"preferences" binding:"omitempty"`
+
+	Location string `json:"location" binding:"omitempty"`
 
 }
 

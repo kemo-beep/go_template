@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, RefreshCw, Loader2, Copy, ExternalLink, Code, Database, Type, Shield, Zap } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { api } from '@/lib/api-client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -49,6 +50,7 @@ interface ColumnInfo {
     nullable: boolean;
     default_value?: string;
     is_primary_key: boolean;
+    is_foreign_key?: boolean;
 }
 
 interface RowData {
@@ -264,6 +266,15 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
         toast.success('Table refreshed');
     };
 
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success('Copied to clipboard');
+        } catch (error) {
+            toast.error('Failed to copy to clipboard');
+        }
+    };
+
     const renderCellValue = (value: any) => {
         if (value === null) {
             return <Badge variant="secondary">NULL</Badge>;
@@ -370,45 +381,343 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                 <BookOpen className="h-4 w-4" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent className="w-[800px] sm:max-w-[800px]">
+                        <SheetContent className="w-[900px] sm:max-w-[900px] overflow-y-auto">
                             <SheetHeader>
-                                <SheetTitle>API Documentation - {tableName}</SheetTitle>
+                                <SheetTitle className="flex items-center gap-2">
+                                    <Database className="h-5 w-5" />
+                                    API Documentation - {tableName}
+                                </SheetTitle>
                                 <SheetDescription>
-                                    API endpoints and documentation for the {tableName} table
+                                    Complete API reference and documentation for the {tableName} table
                                 </SheetDescription>
                             </SheetHeader>
-                            <div className="mt-6 space-y-4">
-                                <div className="p-4 border rounded-lg">
-                                    <h4 className="font-semibold mb-2">Table Endpoints</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">GET</Badge>
-                                            <code>/api/v1/tables/{tableName}</code>
+
+                            <div className="mt-6 space-y-6">
+                                {/* Table Overview */}
+                                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shield className="h-4 w-4 text-blue-600" />
+                                        <h3 className="font-semibold text-blue-900 dark:text-blue-100">Table Overview</h3>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-muted-foreground">Table Name:</span>
+                                            <span className="ml-2 font-mono">{tableName}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">POST</Badge>
-                                            <code>/api/v1/tables/{tableName}/rows</code>
+                                        <div>
+                                            <span className="text-muted-foreground">Total Rows:</span>
+                                            <span className="ml-2 font-semibold">{totalRows.toLocaleString()}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">PUT</Badge>
-                                            <code>/api/v1/tables/{tableName}/rows/:id</code>
+                                        <div>
+                                            <span className="text-muted-foreground">Columns:</span>
+                                            <span className="ml-2 font-semibold">{columns.length}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">DELETE</Badge>
-                                            <code>/api/v1/tables/{tableName}/rows/:id</code>
+                                        <div>
+                                            <span className="text-muted-foreground">Base URL:</span>
+                                            <span className="ml-2 font-mono text-xs">/api/v1/tables/{tableName}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="p-4 border rounded-lg">
-                                    <h4 className="font-semibold mb-2">Schema Information</h4>
-                                    <div className="space-y-1 text-sm">
-                                        {columns.map((col) => (
-                                            <div key={col.name} className="flex justify-between">
-                                                <span className="font-mono">{col.name}</span>
-                                                <span className="text-muted-foreground">{col.type}</span>
-                                            </div>
-                                        ))}
+                                {/* API Endpoints */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                                        <Zap className="h-5 w-5" />
+                                        API Endpoints
+                                    </h3>
+
+                                    <Accordion type="multiple" className="w-full">
+                                        {/* GET All Rows */}
+                                        <AccordionItem value="get-all" className="border rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                                                        GET
+                                                    </Badge>
+                                                    <code className="text-sm font-mono">/api/v1/tables/{tableName}</code>
+                                                    <span className="text-sm text-muted-foreground">Get all rows</span>
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Description</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Retrieve all rows from the {tableName} table with optional pagination and filtering.
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Query Parameters</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                <span className="font-mono">page</span>
+                                                                <span className="text-muted-foreground">integer (optional)</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                <span className="font-mono">limit</span>
+                                                                <span className="text-muted-foreground">integer (optional, default: 50)</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                <span className="font-mono">sort</span>
+                                                                <span className="text-muted-foreground">string (optional)</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Example Request</h4>
+                                                        <div className="relative">
+                                                            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                                                                <code>{`curl -X GET "http://localhost:8080/api/v1/tables/${tableName}?page=1&limit=10" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}</code>
+                                                            </pre>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="absolute top-2 right-2 h-6 w-6 p-0"
+                                                                onClick={() => copyToClipboard(`curl -X GET "http://localhost:8080/api/v1/tables/${tableName}?page=1&limit=10" \\\n  -H "Authorization: Bearer YOUR_TOKEN"`)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Response</h4>
+                                                        <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                                                            <code>{`{
+  "data": {
+    "data": [...],
+    "total": ${totalRows},
+    "page": 1,
+    "limit": 10
+  },
+  "success": true
+}`}</code>
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+
+                                        {/* POST Create Row */}
+                                        <AccordionItem value="post-create" className="border rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                                                        POST
+                                                    </Badge>
+                                                    <code className="text-sm font-mono">/api/v1/tables/{tableName}/rows</code>
+                                                    <span className="text-sm text-muted-foreground">Create new row</span>
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Description</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Create a new row in the {tableName} table.
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Request Body</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            {columns.filter(col => !col.is_primary_key && !col.default_value?.includes('nextval')).map((col) => (
+                                                                <div key={col.name} className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                    <span className="font-mono">{col.name}</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-muted-foreground">{col.type}</span>
+                                                                        {!col.nullable && <Badge variant="destructive" className="text-xs">required</Badge>}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Example Request</h4>
+                                                        <div className="relative">
+                                                            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                                                                <code>{`curl -X POST "http://localhost:8080/api/v1/tables/${tableName}/rows" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -d '{
+    ${columns.filter(col => !col.is_primary_key && !col.default_value?.includes('nextval')).slice(0, 3).map(col => `"${col.name}": "value"`).join(',\n    ')}
+  }'`}</code>
+                                                            </pre>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="absolute top-2 right-2 h-6 w-6 p-0"
+                                                                onClick={() => copyToClipboard(`curl -X POST "http://localhost:8080/api/v1/tables/${tableName}/rows" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -d '{\n    ${columns.filter(col => !col.is_primary_key && !col.default_value?.includes('nextval')).slice(0, 3).map(col => `"${col.name}": "value"`).join(',\n    ')}\n  }'`)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+
+                                        {/* PUT Update Row */}
+                                        <AccordionItem value="put-update" className="border rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                                        PUT
+                                                    </Badge>
+                                                    <code className="text-sm font-mono">/api/v1/tables/{tableName}/rows/:id</code>
+                                                    <span className="text-sm text-muted-foreground">Update row</span>
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Description</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Update an existing row in the {tableName} table by ID.
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Path Parameters</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                <span className="font-mono">id</span>
+                                                                <span className="text-muted-foreground">string (required) - Row ID</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Example Request</h4>
+                                                        <div className="relative">
+                                                            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                                                                <code>{`curl -X PUT "http://localhost:8080/api/v1/tables/${tableName}/rows/123" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -d '{
+    ${columns.filter(col => !col.is_primary_key && !col.default_value?.includes('nextval')).slice(0, 3).map(col => `"${col.name}": "updated_value"`).join(',\n    ')}
+  }'`}</code>
+                                                            </pre>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="absolute top-2 right-2 h-6 w-6 p-0"
+                                                                onClick={() => copyToClipboard(`curl -X PUT "http://localhost:8080/api/v1/tables/${tableName}/rows/123" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -d '{\n    ${columns.filter(col => !col.is_primary_key && !col.default_value?.includes('nextval')).slice(0, 3).map(col => `"${col.name}": "updated_value"`).join(',\n    ')}\n  }'`)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+
+                                        {/* DELETE Row */}
+                                        <AccordionItem value="delete-row" className="border rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                                                        DELETE
+                                                    </Badge>
+                                                    <code className="text-sm font-mono">/api/v1/tables/{tableName}/rows/:id</code>
+                                                    <span className="text-sm text-muted-foreground">Delete row</span>
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Description</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Delete a row from the {tableName} table by ID.
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Path Parameters</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className="flex justify-between items-center p-2 bg-muted rounded">
+                                                                <span className="font-mono">id</span>
+                                                                <span className="text-muted-foreground">string (required) - Row ID</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-medium mb-2">Example Request</h4>
+                                                        <div className="relative">
+                                                            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                                                                <code>{`curl -X DELETE "http://localhost:8080/api/v1/tables/${tableName}/rows/123" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}</code>
+                                                            </pre>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="absolute top-2 right-2 h-6 w-6 p-0"
+                                                                onClick={() => copyToClipboard(`curl -X DELETE "http://localhost:8080/api/v1/tables/${tableName}/rows/123" \\\n  -H "Authorization: Bearer YOUR_TOKEN"`)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </div>
+
+                                {/* Schema Information */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                                        <Type className="h-5 w-5" />
+                                        Table Schema
+                                    </h3>
+
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Column Name</TableHead>
+                                                    <TableHead>Type</TableHead>
+                                                    <TableHead>Nullable</TableHead>
+                                                    <TableHead>Default</TableHead>
+                                                    <TableHead>Constraints</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {columns.map((col) => (
+                                                    <TableRow key={col.name}>
+                                                        <TableCell className="font-mono">{col.name}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="font-mono text-xs">
+                                                                {col.type}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={col.nullable ? "secondary" : "destructive"} className="text-xs">
+                                                                {col.nullable ? "Yes" : "No"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-sm text-muted-foreground">
+                                                            {col.default_value || "NULL"}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex gap-1">
+                                                                {col.is_primary_key && (
+                                                                    <Badge variant="default" className="text-xs">PK</Badge>
+                                                                )}
+                                                                {col.is_foreign_key && (
+                                                                    <Badge variant="outline" className="text-xs">FK</Badge>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
                                 </div>
                             </div>
@@ -606,91 +915,187 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 </DialogContent>
             </Dialog>
 
-            {/* Add Column Dialog */}
-            <Dialog open={addColumnOpen} onOpenChange={setAddColumnOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add New Column</DialogTitle>
-                        <DialogDescription>
-                            Add a new column to the {tableName} table
-                        </DialogDescription>
-                    </DialogHeader>
+            {/* Add Column Sheet */}
+            <Sheet open={addColumnOpen} onOpenChange={setAddColumnOpen}>
+                <SheetContent className="w-[500px] sm:max-w-[500px] px-4">
+                    <SheetHeader>
+                        <SheetTitle className="flex items-center gap-2">
+                            <Plus className="h-5 w-5" />
+                            Add New Column
+                        </SheetTitle>
+                        <SheetDescription>
+                            Add a new column to the <span className="font-mono font-semibold">{tableName}</span> table
+                        </SheetDescription>
+                    </SheetHeader>
+
                     <div className="space-y-4">
+                        {/* Column Information */}
                         <div>
-                            <Label htmlFor="column-name">Column Name</Label>
-                            <Input
-                                id="column-name"
-                                value={newColumn.name}
-                                onChange={(e) => setNewColumn(prev => ({ ...prev, name: e.target.value }))}
-                                placeholder="Enter column name"
-                            />
+
                         </div>
-                        <div>
-                            <Label htmlFor="column-type">Data Type</Label>
-                            <Select
-                                value={newColumn.type}
-                                onValueChange={(value) => setNewColumn(prev => ({ ...prev, type: value }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {COLUMN_TYPES.map(type => (
-                                        <SelectItem key={type} value={type}>
-                                            {type}
+                        <div className="space-y-4">
+                            <div className='flex items-center gap-2 justify-between'>
+                                <Label htmlFor="column-name" className="text-sm font-medium">
+                                    Column Name <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="column-name"
+                                    value={newColumn.name}
+                                    onChange={(e) => setNewColumn(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="Enter column name"
+                                    className="max-w-[50%]"
+                                />
+
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Use snake_case naming convention (e.g., user_name, created_at)
+                            </p>
+
+                            <div className='flex items-center gap-2 justify-between'>
+                                <Label htmlFor="column-type" className="text-sm font-medium">
+                                    Data Type <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={newColumn.type}
+                                    onValueChange={(value) => setNewColumn(prev => ({ ...prev, type: value }))}
+                                >
+                                    <SelectTrigger className="">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {COLUMN_TYPES.map(type => (
+                                            <SelectItem key={type} value={type}>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs">{type}</code>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {type === 'VARCHAR' && 'Variable character string'}
+                                                        {type === 'TEXT' && 'Unlimited text'}
+                                                        {type === 'INTEGER' && '32-bit integer'}
+                                                        {type === 'BIGINT' && '64-bit integer'}
+                                                        {type === 'BOOLEAN' && 'True/false value'}
+                                                        {type === 'DATE' && 'Date only'}
+                                                        {type === 'TIMESTAMP' && 'Date and time'}
+                                                        {type === 'JSON' && 'JSON data'}
+                                                        {type === 'UUID' && 'Universally unique identifier'}
+                                                    </span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className='flex items-center gap-2 justify-between'>
+                                <Label htmlFor="nullable" className="text-sm font-medium">
+                                    Nullable
+                                </Label>
+                                <Select
+                                    value={newColumn.nullable ? 'true' : 'false'}
+                                    onValueChange={(value) => setNewColumn(prev => ({ ...prev, nullable: value === 'true' }))}
+                                >
+                                    <SelectTrigger className="">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="true">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                Yes - Column can be empty
+                                            </div>
                                         </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                        <SelectItem value="false">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                No - Column is required
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="default-value" className="text-sm font-medium">
+                                    Default Value
+                                </Label>
+                                <Input
+                                    id="default-value"
+                                    value={newColumn.default_value}
+                                    onChange={(e) => setNewColumn(prev => ({ ...prev, default_value: e.target.value }))}
+                                    placeholder="Enter default value (optional)"
+                                    className=""
+                                />
+                                <p className="text-xs text-muted-foreground ">
+                                    Leave empty for no default value
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="nullable">Nullable</Label>
-                            <Select
-                                value={newColumn.nullable ? 'true' : 'false'}
-                                onValueChange={(value) => setNewColumn(prev => ({ ...prev, nullable: value === 'true' }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="true">Yes</SelectItem>
-                                    <SelectItem value="false">No</SelectItem>
-                                </SelectContent>
-                            </Select>
+
+                        {/* Preview */}
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                            <h4 className="font-medium mb-2 flex items-center gap-2">
+                                <Database className="h-4 w-4" />
+                                Column Preview
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="font-mono">{newColumn.name || 'column_name'}</span>
+                                    <Badge variant="outline" className="font-mono text-xs">
+                                        {newColumn.type}
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Nullable: {newColumn.nullable ? 'Yes' : 'No'}</span>
+                                    <span>Default: {newColumn.default_value || 'None'}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="default-value">Default Value (Optional)</Label>
-                            <Input
-                                id="default-value"
-                                value={newColumn.default_value}
-                                onChange={(e) => setNewColumn(prev => ({ ...prev, default_value: e.target.value }))}
-                                placeholder="Enter default value"
-                            />
-                        </div>
+
+                        {/* Migration Info */}
+                        {/* <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <div className="flex items-start gap-2">
+                                <Shield className="h-4 w-4 text-blue-600 mt-0.5" />
+                                <div className="text-sm">
+                                    <p className="font-medium text-blue-900 dark:text-blue-100">Migration Required</p>
+                                    <p className="text-blue-700 dark:text-blue-300 mt-1">
+                                        This change will create a database migration that needs to be executed.
+                                        The migration will be applied automatically after confirmation.
+                                    </p>
+                                </div>
+                            </div>
+                        </div> */}
                     </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setAddColumnOpen(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleAddColumn}
-                            disabled={addColumnMutation.isPending}
-                        >
-                            {addColumnMutation.isPending ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Adding...
-                                </>
-                            ) : (
-                                'Add Column'
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+
+                    <SheetFooter className="mt-4 ">
+                        <div className='flex items-center gap-2'>
+                            <Button
+                                variant="outline"
+                                onClick={() => setAddColumnOpen(false)}
+                                disabled={addColumnMutation.isPending}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleAddColumn}
+                                disabled={addColumnMutation.isPending || !newColumn.name.trim()}
+                                className="min-w-[120px]"
+                            >
+                                {addColumnMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Column
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

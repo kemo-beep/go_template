@@ -6830,6 +6830,9 @@
                 "family_name": {
                     "type": "string"
                 },
+                "location": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -6850,6 +6853,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "location": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -6865,6 +6871,9 @@
             "type": "object",
             "properties": {
                 "family_name": {
+                    "type": "string"
+                },
+                "location": {
                     "type": "string"
                 },
                 "name": {
