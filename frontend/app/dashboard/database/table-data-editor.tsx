@@ -14,7 +14,7 @@ import { Pencil, Trash2, Plus, Save, X, ChevronLeft, ChevronRight, BookOpen, Ref
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { api } from '@/lib/api-client';
+import { api, ColumnChange } from '@/lib/api-client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -52,9 +52,23 @@ interface ColumnInfo {
     is_primary_key: boolean;
     is_foreign_key?: boolean;
     references?: string;
+    references_table?: string;
+    references_column?: string;
+    on_delete?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+    on_update?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
     is_editing?: boolean;
     is_new?: boolean;
     original_name?: string;
+    constraints?: {
+        unique?: boolean;
+        check?: string;
+        not_null?: boolean;
+    };
+    indexes?: {
+        name?: string;
+        type?: 'BTREE' | 'HASH' | 'GIN' | 'GIST';
+        unique?: boolean;
+    };
 }
 
 interface RowData {
@@ -103,9 +117,23 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 is_primary_key: (col.is_primary_key as boolean) || false,
                 is_foreign_key: (col.is_foreign_key as boolean) || false,
                 references: (col.references as string) || '',
+                references_table: (col.references_table as string) || '',
+                references_column: (col.references_column as string) || '',
+                on_delete: (col.on_delete as 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION') || 'NO ACTION',
+                on_update: (col.on_update as 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION') || 'NO ACTION',
                 is_editing: false,
                 is_new: false,
                 original_name: col.name as string,
+                constraints: {
+                    unique: (col.unique as boolean) || false,
+                    check: (col.check as string) || '',
+                    not_null: !(col.nullable as boolean),
+                },
+                indexes: {
+                    name: (col.index_name as string) || '',
+                    type: (col.index_type as 'BTREE' | 'HASH' | 'GIN' | 'GIST') || 'BTREE',
+                    unique: (col.index_unique as boolean) || false,
+                },
             }));
             setColumns(schemaColumns);
             setOriginalColumns(JSON.parse(JSON.stringify(schemaColumns)));
@@ -209,8 +237,22 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
             is_primary_key: false,
             is_foreign_key: false,
             references: '',
+            references_table: '',
+            references_column: '',
+            on_delete: 'NO ACTION',
+            on_update: 'NO ACTION',
             is_editing: true,
             is_new: true,
+            constraints: {
+                unique: false,
+                check: '',
+                not_null: false,
+            },
+            indexes: {
+                name: '',
+                type: 'BTREE',
+                unique: false,
+            },
         };
         setColumns(prev => [...prev, newColumn]);
     };
@@ -253,6 +295,35 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
             return;
         }
 
+        // Check for multiple primary keys
+        if (column.is_primary_key) {
+            const existingPrimaryKey = columns.find((col, i) =>
+                i !== index && col.is_primary_key && !col.is_new
+            );
+            if (existingPrimaryKey) {
+                toast.error('Only one primary key is allowed per table');
+                return;
+            }
+        }
+
+        // Validate foreign key references
+        if (column.is_foreign_key) {
+            if (!column.references_table || !column.references_column) {
+                toast.error('Foreign key must specify both table and column references');
+                return;
+            }
+        }
+
+        // Validate check constraint
+        if (column.constraints?.check && column.constraints.check.trim()) {
+            // Basic SQL validation for check constraints
+            const checkExpr = column.constraints.check.trim();
+            if (!checkExpr.match(/^[a-zA-Z_][a-zA-Z0-9_]*\s*[<>=!]+.*$/)) {
+                toast.error('Check constraint must be a valid SQL expression (e.g., "age > 0")');
+                return;
+            }
+        }
+
         setColumns(prev => prev.map((col, i) =>
             i === index ? { ...col, is_editing: false } : col
         ));
@@ -282,7 +353,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
             setMigrationStatus('running');
 
             // Convert columns to changes format
-            const changes = [];
+            const changes: ColumnChange[] = [];
 
             // Find new columns
             const newColumns = columns.filter(col => col.is_new);
@@ -296,6 +367,12 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                     is_primary_key: col.is_primary_key,
                     is_foreign_key: col.is_foreign_key,
                     references: col.references || '',
+                    references_table: col.references_table || '',
+                    references_column: col.references_column || '',
+                    on_delete: col.on_delete || 'NO ACTION',
+                    on_update: col.on_update || 'NO ACTION',
+                    constraints: col.constraints,
+                    indexes: col.indexes,
                 });
             });
 
@@ -323,7 +400,15 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 if (originalCol && (
                     originalCol.type !== col.type ||
                     originalCol.nullable !== col.nullable ||
-                    originalCol.default_value !== col.default_value
+                    originalCol.default_value !== col.default_value ||
+                    originalCol.is_primary_key !== col.is_primary_key ||
+                    originalCol.is_foreign_key !== col.is_foreign_key ||
+                    originalCol.references_table !== col.references_table ||
+                    originalCol.references_column !== col.references_column ||
+                    originalCol.on_delete !== col.on_delete ||
+                    originalCol.on_update !== col.on_update ||
+                    JSON.stringify(originalCol.constraints) !== JSON.stringify(col.constraints) ||
+                    JSON.stringify(originalCol.indexes) !== JSON.stringify(col.indexes)
                 )) {
                     changes.push({
                         action: 'modify' as const,
@@ -331,6 +416,15 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                         type: col.type,
                         nullable: col.nullable,
                         default_value: col.default_value,
+                        is_primary_key: col.is_primary_key,
+                        is_foreign_key: col.is_foreign_key,
+                        references: col.references || '',
+                        references_table: col.references_table || '',
+                        references_column: col.references_column || '',
+                        on_delete: col.on_delete || 'NO ACTION',
+                        on_update: col.on_update || 'NO ACTION',
+                        constraints: col.constraints,
+                        indexes: col.indexes,
                     });
                 }
             });
@@ -360,7 +454,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
             });
 
             console.log('Migration response:', response);
-            const migrationId = response.data?.data?.id || response.data?.id;
+            const migrationId = response.data?.id;
             console.log('Migration ID:', migrationId);
 
             if (!migrationId) {
@@ -1049,6 +1143,183 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                             <div className="text-xs text-muted-foreground">Column Actions</div>
                                         )}
                                     </TableHead>
+                                </TableRow>
+                                <TableRow>
+                                    {columns.map((column, index) => (
+                                        <TableHead key={`constraints-${index}`} className="w-[200px]">
+                                            {column.is_editing ? (
+                                                <div className="space-y-2">
+                                                    {/* Primary Key */}
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`pk-${index}`}
+                                                            checked={column.is_primary_key}
+                                                            onChange={(e) => updateColumn(index, 'is_primary_key', e.target.checked)}
+                                                            className="rounded"
+                                                        />
+                                                        <label htmlFor={`pk-${index}`} className="text-xs font-medium">
+                                                            Primary Key
+                                                        </label>
+                                                    </div>
+
+                                                    {/* Foreign Key */}
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center space-x-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`fk-${index}`}
+                                                                checked={column.is_foreign_key || false}
+                                                                onChange={(e) => updateColumn(index, 'is_foreign_key', e.target.checked)}
+                                                                className="rounded"
+                                                            />
+                                                            <label htmlFor={`fk-${index}`} className="text-xs font-medium">
+                                                                Foreign Key
+                                                            </label>
+                                                        </div>
+                                                        {column.is_foreign_key && (
+                                                            <div className="space-y-1 pl-6">
+                                                                <Input
+                                                                    value={column.references_table || ''}
+                                                                    onChange={(e) => updateColumn(index, 'references_table', e.target.value)}
+                                                                    placeholder="Table"
+                                                                    className="h-6 text-xs"
+                                                                />
+                                                                <Input
+                                                                    value={column.references_column || ''}
+                                                                    onChange={(e) => updateColumn(index, 'references_column', e.target.value)}
+                                                                    placeholder="Column"
+                                                                    className="h-6 text-xs"
+                                                                />
+                                                                <div className="flex gap-1">
+                                                                    <Select
+                                                                        value={column.on_delete || 'NO ACTION'}
+                                                                        onValueChange={(value) => updateColumn(index, 'on_delete', value)}
+                                                                    >
+                                                                        <SelectTrigger className="h-6 text-xs">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="CASCADE">CASCADE</SelectItem>
+                                                                            <SelectItem value="SET NULL">SET NULL</SelectItem>
+                                                                            <SelectItem value="RESTRICT">RESTRICT</SelectItem>
+                                                                            <SelectItem value="NO ACTION">NO ACTION</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Constraints */}
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center space-x-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`unique-${index}`}
+                                                                checked={column.constraints?.unique || false}
+                                                                onChange={(e) => updateColumn(index, 'constraints', {
+                                                                    ...column.constraints,
+                                                                    unique: e.target.checked
+                                                                })}
+                                                                className="rounded"
+                                                            />
+                                                            <label htmlFor={`unique-${index}`} className="text-xs font-medium">
+                                                                Unique
+                                                            </label>
+                                                        </div>
+                                                        <Input
+                                                            value={column.constraints?.check || ''}
+                                                            onChange={(e) => updateColumn(index, 'constraints', {
+                                                                ...column.constraints,
+                                                                check: e.target.value
+                                                            })}
+                                                            placeholder="Check constraint (e.g., age > 0)"
+                                                            className="h-6 text-xs"
+                                                        />
+                                                    </div>
+
+                                                    {/* Index */}
+                                                    <div className="space-y-1">
+                                                        <Input
+                                                            value={column.indexes?.name || ''}
+                                                            onChange={(e) => updateColumn(index, 'indexes', {
+                                                                ...column.indexes,
+                                                                name: e.target.value
+                                                            })}
+                                                            placeholder="Index name"
+                                                            className="h-6 text-xs"
+                                                        />
+                                                        <div className="flex gap-1">
+                                                            <Select
+                                                                value={column.indexes?.type || 'BTREE'}
+                                                                onValueChange={(value) => updateColumn(index, 'indexes', {
+                                                                    ...column.indexes,
+                                                                    type: value as 'BTREE' | 'HASH' | 'GIN' | 'GIST'
+                                                                })}
+                                                            >
+                                                                <SelectTrigger className="h-6 text-xs">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="BTREE">BTREE</SelectItem>
+                                                                    <SelectItem value="HASH">HASH</SelectItem>
+                                                                    <SelectItem value="GIN">GIN</SelectItem>
+                                                                    <SelectItem value="GIST">GIST</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <div className="flex items-center space-x-1">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id={`index-unique-${index}`}
+                                                                    checked={column.indexes?.unique || false}
+                                                                    onChange={(e) => updateColumn(index, 'indexes', {
+                                                                        ...column.indexes,
+                                                                        unique: e.target.checked
+                                                                    })}
+                                                                    className="rounded"
+                                                                />
+                                                                <label htmlFor={`index-unique-${index}`} className="text-xs">
+                                                                    Unique
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <div className="flex gap-1 flex-wrap">
+                                                        {column.is_primary_key && (
+                                                            <Badge variant="default" className="text-xs">PK</Badge>
+                                                        )}
+                                                        {column.is_foreign_key && (
+                                                            <Badge variant="outline" className="text-xs">FK</Badge>
+                                                        )}
+                                                        {column.constraints?.unique && (
+                                                            <Badge variant="secondary" className="text-xs">UNIQUE</Badge>
+                                                        )}
+                                                        {column.constraints?.check && (
+                                                            <Badge variant="outline" className="text-xs">CHECK</Badge>
+                                                        )}
+                                                        {column.indexes?.name && (
+                                                            <Badge variant="outline" className="text-xs">INDEX</Badge>
+                                                        )}
+                                                    </div>
+                                                    {column.is_foreign_key && column.references_table && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            → {column.references_table}.{column.references_column}
+                                                        </div>
+                                                    )}
+                                                    {column.constraints?.check && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {column.constraints.check}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="w-24"></TableHead>
                                 </TableRow>
                                 <TableRow>
                                     {columns.map((column, index) => (

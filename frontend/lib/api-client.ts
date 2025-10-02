@@ -95,6 +95,20 @@ export interface ColumnChange {
     is_primary_key?: boolean;
     is_foreign_key?: boolean;
     references?: string;
+    references_table?: string;
+    references_column?: string;
+    on_delete?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+    on_update?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+    constraints?: {
+        unique?: boolean;
+        check?: string;
+        not_null?: boolean;
+    };
+    indexes?: {
+        name?: string;
+        type?: 'BTREE' | 'HASH' | 'GIN' | 'GIST';
+        unique?: boolean;
+    };
 }
 
 // API Functions
