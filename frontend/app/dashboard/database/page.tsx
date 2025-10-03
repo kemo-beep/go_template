@@ -58,7 +58,7 @@ import {
     Check
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CreateTableDialog } from './create-table';
+import { CreateTableSheet } from '@/components/create-table-sheet';
 import { AlterTableContent } from './alter-table-content';
 import { MigrationHistory } from './migration-history';
 import TableDataEditor from './table-data-editor';
@@ -507,8 +507,8 @@ export default function DatabasePage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
             {/* Header Section */}
-            <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                <div className="px-6 py-4">
+            <div className="">
+                <div className="pb-2">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
                             <div className="flex items-center gap-3">
@@ -516,17 +516,17 @@ export default function DatabasePage() {
                                     <Database2 className="h-6 w-6 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                                    <h1 className=" font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                                         Database Explorer
                                     </h1>
-                                    <p className="text-sm text-muted-foreground">
+                                    {/* <p className="text-xs text-muted-foreground">
                                         Manage tables, execute queries, and monitor your database
                                         {selectedTable && (
                                             <span className="ml-2 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
                                                 Viewing: {selectedTable}
                                             </span>
                                         )}
-                                    </p>
+                                    </p> */}
                                 </div>
                             </div>
                         </div>
@@ -546,9 +546,9 @@ export default function DatabasePage() {
                                 variant="outline"
                                 size="sm"
                                 disabled={isRefreshing}
-                                className="gap-2"
+                                className="gap-2 text-xs"
                             >
-                                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
                                 Refresh
                             </Button>
 
@@ -556,9 +556,9 @@ export default function DatabasePage() {
                                 onClick={() => handleMigrationHistoryToggle(!showMigrationHistory)}
                                 variant="outline"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-2 text-xs"
                             >
-                                <History className="h-4 w-4" />
+                                <History className="h-3 w-3" />
                                 Migrations
                             </Button>
 
@@ -566,9 +566,9 @@ export default function DatabasePage() {
                                 onClick={openQueryTab}
                                 variant="outline"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-2 text-xs"
                             >
-                                <Code2 className="h-4 w-4" />
+                                <Code2 className="h-3 w-3" />
                                 SQL Editor
                             </Button>
 
@@ -576,16 +576,16 @@ export default function DatabasePage() {
                                 onClick={handleShareLink}
                                 variant="outline"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-2 text-xs"
                             >
                                 {copiedToClipboard ? (
                                     <>
-                                        <Check className="h-4 w-4" />
+                                        <Check className="h-3 w-3" />
                                         Copied!
                                     </>
                                 ) : (
                                     <>
-                                        <Share2 className="h-4 w-4" />
+                                        <Share2 className="h-3 w-3" />
                                         Share
                                     </>
                                 )}
@@ -594,9 +594,9 @@ export default function DatabasePage() {
                             <Button
                                 onClick={() => setCreateTableOpen(true)}
                                 size="sm"
-                                className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+                                className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-xs"
                             >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-3 w-3" />
                                 Create Table
                             </Button>
                         </div>
@@ -604,52 +604,52 @@ export default function DatabasePage() {
                 </div>
             </div>
 
-            <CreateTableDialog open={createTableOpen} onOpenChange={setCreateTableOpen} />
+            <CreateTableSheet isOpen={createTableOpen} onClose={() => setCreateTableOpen(false)} />
 
             {/* Migration History */}
             {showMigrationHistory && (
-                <div className="p-6">
+                <div className="">
                     <MigrationHistory />
                 </div>
             )}
 
             {/* Main Content */}
             {!showMigrationHistory && (
-                <div className="p-6">
+                <div >
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 h-[calc(100vh-200px)]">
                         {/* Tables Sidebar */}
                         <div className="lg:col-span-1">
                             <Card className="h-full py-2 gap-1">
                                 <CardHeader className="">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-base flex items-center gap-2">
-                                            <TableIcon className="h-5 w-5" />
+                                        <CardTitle className=" flex items-center gap-2">
+                                            <TableIcon className="h-4 w-4" />
                                             Tables
-                                            {tablesLoading && <Skeleton className="h-4 w-4 rounded" />}
+                                            {tablesLoading && <Skeleton className="h-3 w-3 rounded" />}
                                         </CardTitle>
                                         <div className="flex items-center gap-1">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <Filter className="h-4 w-4" />
+                                                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                                        <Filter className="h-3 w-3" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-48">
                                                     <DropdownMenuItem onClick={() => setSortBy('name')}>
-                                                        <SortAsc className="h-4 w-4 mr-2" />
+                                                        <SortAsc className="h-3 w-3 mr-2" />
                                                         Sort by Name
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => setSortBy('created')}>
-                                                        <Clock className="h-4 w-4 mr-2" />
+                                                        <Clock className="h-3 w-3 mr-2" />
                                                         Sort by Created
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => setSortBy('size')}>
-                                                        <BarChart3 className="h-4 w-4 mr-2" />
+                                                        <BarChart3 className="h-3 w-3 mr-2" />
                                                         Sort by Size
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-                                                        {sortOrder === 'asc' ? <SortDesc className="h-4 w-4 mr-2" /> : <SortAsc className="h-4 w-4 mr-2" />}
+                                                        {sortOrder === 'asc' ? <SortDesc className="h-3 w-3 mr-2" /> : <SortAsc className="h-3 w-3 mr-2" />}
                                                         {sortOrder === 'asc' ? 'Descending' : 'Ascending'}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -657,8 +657,8 @@ export default function DatabasePage() {
                                         </div>
                                     </div>
 
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <div className="relative py-1">
+                                        <Search className="absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
                                         <Input
                                             placeholder="Search tables..."
                                             value={searchTerm}
@@ -673,7 +673,7 @@ export default function DatabasePage() {
                                         <div className="p-4 space-y-3">
                                             {Array.from({ length: 5 }).map((_, i) => (
                                                 <div key={i} className="flex items-center gap-3">
-                                                    <Skeleton className="h-4 w-4 rounded" />
+                                                    <Skeleton className="h-3 w-3 rounded" />
                                                     <Skeleton className="h-4 flex-1" />
                                                 </div>
                                             ))}
@@ -746,21 +746,21 @@ export default function DatabasePage() {
 
                         {/* Main Content Area */}
                         <div className="lg:col-span-3">
-                            <Card className="h-full">
-                                <CardHeader className="pb-3">
+                            <Card className="h-full gap-1">
+                                <CardHeader className="pb-0">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 w-full ">
                                             {/* Enhanced Tabs */}
                                             {openTabs.length > 0 && (
-                                                <div className="flex items-center gap-1 overflow-x-auto max-w-2xl">
+                                                <div className="flex items-center gap-[0px] max-w-3xl overflow-x-auto">
                                                     {openTabs.map((tab) => (
                                                         <div
                                                             key={tab.id}
                                                             className={cn(
-                                                                "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer min-w-0",
+                                                                "max-w-xl group flex items-center gap-1 px-2 py-1 border-[1px] border-border/50 text-sm font-medium transition-all duration-200 cursor-pointer min-w-0",
                                                                 activeTab === tab.id
-                                                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                                                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                                                                    ? "bg-primary/5 text-primary border-primary"
+                                                                    : "bg-muted hover:bg-muted/10 text-muted-foreground hover:text-foreground"
                                                             )}
                                                             onClick={() => {
                                                                 setActiveTab(tab.id);
@@ -777,17 +777,17 @@ export default function DatabasePage() {
                                                                 }
                                                             }}
                                                         >
-                                                            {tab.type === 'table' && <TableIcon className="h-4 w-4 flex-shrink-0" />}
-                                                            {tab.type === 'query' && <Code2 className="h-4 w-4 flex-shrink-0" />}
-                                                            {tab.type === 'alter' && <Settings className="h-4 w-4 flex-shrink-0" />}
-                                                            <span className="truncate max-w-32">{tab.name}</span>
+                                                            {tab.type === 'table' && <TableIcon className="h-3 w-3 flex-shrink-0" />}
+                                                            {tab.type === 'query' && <Code2 className="h-3 w-3 flex-shrink-0" />}
+                                                            {tab.type === 'alter' && <Settings className="h-3 w-3 flex-shrink-0" />}
+                                                            <span className="truncate w-64 text-xs">{tab.name}</span>
                                                             {tab.isDirty && (
                                                                 <div className="h-2 w-2 rounded-full bg-orange-500 flex-shrink-0" />
                                                             )}
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                                                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/5 hover:text-destructive"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     closeTab(tab.id);
@@ -803,8 +803,10 @@ export default function DatabasePage() {
 
                                         {activeTab && (
                                             <div className="flex items-center gap-2">
-                                                <Button size="sm" variant="outline" className="gap-2">
-                                                    <Download className="h-4 w-4" />
+                                                <Button size="sm" variant="outline" className="gap-2 text-xs"
+                                               
+                                                >
+                                                    <Download className="h-3 w-3" />
                                                     Export
                                                 </Button>
                                             </div>
@@ -895,13 +897,13 @@ function TableItem({
             onClick={() => onOpenTable(table.name)}
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
-                <TableIcon className="h-4 w-4 flex-shrink-0" />
+                <TableIcon className="h-3 w-3 flex-shrink-0" />
                 <span className="truncate text-xs">{table.name}</span>
-                
+
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-                
+
                 {table.row_count !== undefined && (
                     <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums">
                         {table.row_count}
@@ -927,7 +929,7 @@ function TableItem({
                             className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="h-3 w-3" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -937,7 +939,7 @@ function TableItem({
                                 onBrowseData(table.name);
                             }}
                         >
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-3 w-3 mr-2" />
                             Browse data
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -946,7 +948,7 @@ function TableItem({
                                 onAlterTable(table.name);
                             }}
                         >
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-3 w-3 mr-2" />
                             Alter table
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -956,7 +958,7 @@ function TableItem({
                                 onEnableRLS(table.name);
                             }}
                         >
-                            <Lock className="h-4 w-4 mr-2" />
+                            <Lock className="h-3 w-3 mr-2" />
                             Enable RLS
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -966,7 +968,7 @@ function TableItem({
                             }}
                             className="text-orange-600 focus:text-orange-600"
                         >
-                            <Scissors className="h-4 w-4 mr-2" />
+                            <Scissors className="h-3 w-3 mr-2" />
                             Truncate
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -976,7 +978,7 @@ function TableItem({
                             }}
                             className="text-red-600 focus:text-red-600"
                         >
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-3 w-3 mr-2" />
                             Drop
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -1005,16 +1007,16 @@ function EmptyState({ onOpenQueryTab, onCreateTable, onShareLink }: EmptyStatePr
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
                 <Button variant="outline" className="gap-2" onClick={onOpenQueryTab}>
-                    <Code2 className="h-4 w-4" />
+                    <Code2 className="h-3 w-3" />
                     Open SQL Editor
                 </Button>
                 <Button className="gap-2" onClick={onCreateTable}>
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3 w-3" />
                     Create Table
                 </Button>
                 {onShareLink && (
                     <Button variant="outline" className="gap-2" onClick={onShareLink}>
-                        <Share2 className="h-4 w-4" />
+                        <Share2 className="h-3 w-3" />
                         Share Current View
                     </Button>
                 )}
@@ -1056,7 +1058,7 @@ function QueryEditor({
                         disabled={!query.trim() || isExecuting}
                         className="gap-2"
                     >
-                        <Play className="h-4 w-4" />
+                        <Play className="h-3 w-3" />
                         {isExecuting ? 'Executing...' : 'Execute Query'}
                     </Button>
                     <Button
@@ -1078,7 +1080,7 @@ function QueryEditor({
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm" className="gap-2">
-                                        <Clock className="h-4 w-4" />
+                                        <Clock className="h-3 w-3" />
                                         Recent
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -1113,7 +1115,7 @@ function QueryEditor({
                         {isExecuting ? (
                             <div className="flex items-center justify-center h-full">
                                 <div className="flex items-center gap-2">
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
                                     <span className="text-sm text-muted-foreground">Executing query...</span>
                                 </div>
                             </div>

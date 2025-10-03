@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Save, X, Key, Link, Shield, Database } from 'lucide-react';
+import { Save, X, Key, Link, Shield, Database, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api-client';
 
 const COLUMN_TYPES = [
     'VARCHAR',
@@ -104,6 +107,35 @@ export function ColumnEditorSheet({
         },
     });
 
+    // Fetch all tables for foreign key selection
+    const { data: tablesData, isLoading: tablesLoading } = useQuery({
+        queryKey: ['all-tables'],
+        queryFn: () => api.getAllTables(),
+        enabled: formData.is_foreign_key,
+    });
+
+    // Fetch columns for selected table using the existing getTableSchema API
+    const { data: columnsData, isLoading: columnsLoading } = useQuery({
+        queryKey: ['table-schema', formData.references_table],
+        queryFn: () => api.getTableSchema(formData.references_table!),
+        enabled: formData.is_foreign_key && !!formData.references_table,
+    });
+
+    // Debug logging
+    useEffect(() => {
+        if (tablesData) {
+            console.log('Tables data:', tablesData);
+            console.log('Tables array:', tablesData?.data?.data);
+        }
+    }, [tablesData]);
+
+    useEffect(() => {
+        if (columnsData) {
+            console.log('Columns data:', columnsData);
+            console.log('Columns array:', columnsData?.data?.data?.columns);
+        }
+    }, [columnsData]);
+
     // Initialize form data when column changes
     useEffect(() => {
         if (column) {
@@ -174,6 +206,14 @@ export function ColumnEditorSheet({
         }));
     };
 
+    const handleTableSelection = (tableName: string) => {
+        setFormData(prev => ({
+            ...prev,
+            references_table: tableName,
+            references_column: '', // Reset column selection when table changes
+        }));
+    };
+
     const handleSave = () => {
         // Validation
         if (!formData.name.trim()) {
@@ -206,6 +246,22 @@ export function ColumnEditorSheet({
         if (formData.is_foreign_key) {
             if (!formData.references_table || !formData.references_column) {
                 toast.error('Foreign key must specify both table and column references');
+                return;
+            }
+
+            // Check if the referenced table and column exist
+            if (tablesLoading || columnsLoading) {
+                toast.error('Please wait for table and column data to load');
+                return;
+            }
+
+            if (!tablesData?.data?.data?.find((table: any) => table.name === formData.references_table)) {
+                toast.error('Selected table does not exist');
+                return;
+            }
+
+            if (!columnsData?.data?.data?.columns?.find((col: any) => col.name === formData.references_column)) {
+                toast.error('Selected column does not exist in the referenced table');
                 return;
             }
         }
@@ -354,22 +410,83 @@ export function ColumnEditorSheet({
                                     <div className="ml-6 space-y-3 p-3 bg-muted/50 rounded-lg">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-2">
-                                                <Label htmlFor="ref-table">Referenced Table</Label>
-                                                <Input
-                                                    id="ref-table"
+                                                <Label htmlFor="ref-table">Referenced Table *</Label>
+                                                <Select
                                                     value={formData.references_table || ''}
-                                                    onChange={(e) => updateField('references_table', e.target.value)}
-                                                    placeholder="Table name"
-                                                />
+                                                    onValueChange={handleTableSelection}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a table" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {tablesLoading ? (
+                                                            <div className="flex items-center justify-center p-2">
+                                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                <span className="text-sm text-muted-foreground">Loading tables...</span>
+                                                            </div>
+                                                        ) : tablesData?.data?.data && tablesData.data.data.length > 0 ? (
+                                                            tablesData.data.data.map((table: any) => (
+                                                                <SelectItem key={table.name} value={table.name}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Database className="h-3 w-3" />
+                                                                        {table.name}
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))
+                                                        ) : (
+                                                            <div className="p-2 text-sm text-muted-foreground">
+                                                                No tables found
+                                                            </div>
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="ref-column">Referenced Column</Label>
-                                                <Input
-                                                    id="ref-column"
+                                                <Label htmlFor="ref-column">Referenced Column *</Label>
+                                                <Select
                                                     value={formData.references_column || ''}
-                                                    onChange={(e) => updateField('references_column', e.target.value)}
-                                                    placeholder="Column name"
-                                                />
+                                                    onValueChange={(value) => updateField('references_column', value)}
+                                                    disabled={!formData.references_table}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={
+                                                            !formData.references_table
+                                                                ? "Select a table first"
+                                                                : "Select a column"
+                                                        } />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {columnsLoading ? (
+                                                            <div className="flex items-center justify-center p-2">
+                                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                <span className="text-sm text-muted-foreground">Loading columns...</span>
+                                                            </div>
+                                                        ) : columnsData?.data?.data?.columns && columnsData.data.data.columns.length > 0 ? (
+                                                            columnsData.data.data.columns.map((col: any) => (
+                                                                <SelectItem key={col.name} value={col.name}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Key className="h-3 w-3" />
+                                                                        <span>{col.name}</span>
+                                                                        <span className="text-xs text-muted-foreground">({col.type})</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))
+                                                        ) : formData.references_table ? (
+                                                            <div className="p-2 text-sm text-muted-foreground">
+                                                                No columns found in {formData.references_table}
+                                                                {columnsData && (
+                                                                    <div className="mt-1 text-xs">
+                                                                        Debug: {JSON.stringify(columnsData, null, 2)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="p-2 text-sm text-muted-foreground">
+                                                                Select a table first
+                                                            </div>
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
                                         </div>
 
@@ -449,10 +566,10 @@ export function ColumnEditorSheet({
                                         onChange={(e) => updateConstraints('check', e.target.value)}
                                         placeholder="e.g., age &gt; 0"
                                     />
-                                   
+
                                 </div>
                             </div>
-                            
+
                         </div>
                         <p className="text-xs text-muted-foreground">
                             Enter a SQL expression for validation (e.g., &quot;age &gt; 0&quot;, &quot;status IN ('active', 'inactive')&quot;)
@@ -525,7 +642,7 @@ export function ColumnEditorSheet({
                         </Button>
                         <Button onClick={handleSave}>
                             <Save className="h-4 w-4 mr-2" />
-                            {isEditing ? 'Update Column' : 'Add Column'}
+                            {isEditing ? 'Update Column' : 'Insert Column'}
                         </Button>
                     </div>
                 </SheetFooter>

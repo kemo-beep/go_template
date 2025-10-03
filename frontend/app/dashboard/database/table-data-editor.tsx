@@ -561,11 +561,11 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-semibold">{tableName}</h3>
-                    <p className="text-sm text-muted-foreground">
+        <div className="">
+            <div className="flex items-center justify-between py-2">
+                <div className=" flex items-center gap-2  ">
+                    <h3 className=" text-basefont-semibold">{tableName}</h3>
+                    <p className="text-xs text-muted-foreground">
                         {totalRows} rows total
                     </p>
                 </div>
@@ -579,7 +579,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                     onClick={handleRefresh}
                                     disabled={isLoading}
                                 >
-                                    <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                                    <RefreshCw className={cn("h-3 w-3", isLoading && "animate-spin")} />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -591,7 +591,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                     <Sheet open={apiDocsOpen} onOpenChange={setApiDocsOpen}>
                         <SheetTrigger asChild>
                             <Button variant="outline" size="sm">
-                                <BookOpen className="h-4 w-4" />
+                                <BookOpen className="h-3 w-3" />
                             </Button>
                         </SheetTrigger>
                         <SheetContent className="w-[900px] sm:max-w-[900px] overflow-y-auto px-6">
@@ -609,7 +609,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                 {/* Table Overview */}
                                 <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Shield className="h-4 w-4 text-blue-600" />
+                                        <Shield className="h-3 w-3 text-blue-600" />
                                         <h3 className="font-semibold text-blue-900 dark:text-blue-100">Table Overview</h3>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -941,33 +941,40 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                         variant="outline"
                         onClick={addNewColumn}
                         disabled={migrationStatus === 'running'}
+                        className='text-xs'
+                        size='sm'
                     >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Column
+                        <Plus className="h-3 w-3" />
+                        Insert Column
                     </Button>
 
                     {hasChanges && (
                         <Button
                             onClick={handleSave}
                             disabled={migrationStatus === 'running'}
+                            className='text-xs'
+                            size='sm'
                         >
                             {migrationStatus === 'running' ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="h-3 w-3  animate-spin" />
                                     Running Migration...
                                 </>
                             ) : (
                                 <>
-                                    <Save className="h-4 w-4 mr-2" />
+                                    <Save className="h-3 w-3 mr-2" />
                                     Save Changes
                                 </>
                             )}
                         </Button>
                     )}
 
-                    <Button onClick={handleAddRow} disabled={isAddingRow}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Row
+                    <Button onClick={handleAddRow} disabled={isAddingRow}
+                        className='text-xs'
+                        size='sm'
+                    >
+                        <Plus className="h-3 w-3" />
+                        Insert Row
                     </Button>
                 </div>
             </div>
@@ -980,9 +987,9 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                     migrationStatus === 'completed' && "bg-green-50 border-green-200",
                     migrationStatus === 'error' && "bg-red-50 border-red-200"
                 )}>
-                    {migrationStatus === 'running' && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {migrationStatus === 'completed' && <Check className="h-4 w-4 text-green-600" />}
-                    {migrationStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
+                    {migrationStatus === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {migrationStatus === 'completed' && <Check className="h-3 w-3 text-green-600" />}
+                    {migrationStatus === 'error' && <AlertCircle className="h-3 w-3 text-red-600" />}
                     <span className="text-sm font-medium">
                         {migrationStatus === 'running' && 'Migration in progress...'}
                         {migrationStatus === 'completed' && 'Migration completed successfully'}
@@ -991,14 +998,14 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                 </div>
             )}
 
-            <Card>
+            <Card className="shadow-none">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     {columns.map((column, index) => (
-                                        <TableHead key={index} className="w-[200px]">
+                                        <TableHead key={index} className="w-[200px] border-r border-border/50">
                                             {column.is_editing ? (
                                                 <Input
                                                     value={column.name}
@@ -1019,27 +1026,27 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                     ))}
                                     <TableHead className="w-24">Actions</TableHead>
                                 </TableRow>
-                                <TableRow>
+                                <TableRow >
                                     {columns.map((column, index) => (
-                                        <TableHead key={`type-${index}`} className="w-[200px]">
+                                        <TableHead key={`type-${index}`} className="w-[200px] border-r border-border/50">
                                             <div className="space-y-1">
-                                                <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                <code className="text-xs text-muted-foreground">
                                                     {column.type}
                                                 </code>
-                                                <div className="flex gap-1">
+                                                {/* <div className="flex gap-1">
                                                     <Badge variant={column.nullable ? 'secondary' : 'outline'} className="text-xs">
                                                         {column.nullable ? 'Nullable' : 'Not Null'}
                                                     </Badge>
-                                                </div>
-                                                <span className="text-xs text-gray-500">
+                                                </div> */}
+                                                {/* <span className="text-xs text-gray-500">
                                                     {column.default_value || 'No default'}
-                                                </span>
+                                                </span> */}
                                             </div>
                                         </TableHead>
                                     ))}
-                                    <TableHead className="w-24">Type & Properties</TableHead>
+                                    {/* <TableHead className="w-24">Type & Properties</TableHead> */}
                                 </TableRow>
-                                <TableRow>
+                                {/* <TableRow>
                                     {columns.map((column, index) => (
                                         <TableHead key={`constraints-${index}`} className="w-[200px]">
                                             <div className="space-y-1">
@@ -1074,16 +1081,16 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                         </TableHead>
                                     ))}
                                     <TableHead className="w-24">Keys & Constraints</TableHead>
-                                </TableRow>
+                                </TableRow> */}
                                 <TableRow>
                                     {columns.map((column, index) => (
-                                        <TableHead key={`actions-${index}`} className="w-[200px]">
+                                        <TableHead key={`actions-${index}`} className="w-[200px] border-r border-border/50">
                                             <div className="flex gap-1">
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => startEditing(index)}
-                                                    className="h-6 w-6 p-0"
+                                                    className="h-3 w-3 p-0"
                                                 >
                                                     <Edit2 className="h-3 w-3" />
                                                 </Button>
@@ -1092,7 +1099,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => deleteColumn(index)}
-                                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                                        className="h-3 w-3 p-0 text-red-600 hover:text-red-700"
                                                     >
                                                         <Trash2 className="h-3 w-3" />
                                                     </Button>
@@ -1103,15 +1110,15 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                     <TableHead className="w-24">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className="bg-white">
                                 {isAddingRow && (
-                                    <TableRow className="bg-muted/50">
+                                    <TableRow className="">
                                         {columns.map((column) => (
-                                            <TableCell key={column.name}>
+                                            <TableCell key={column.name} className="border-r border-border/50">
                                                 {renderEditableCell(newRow, column, true)}
                                             </TableCell>
                                         ))}
-                                        <TableCell>
+                                        <TableCell className="border-r border-border/50">
                                             <div className="flex items-center gap-1">
                                                 <Button
                                                     size="sm"
@@ -1119,14 +1126,14 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                                     onClick={handleSaveNewRow}
                                                     disabled={addRowMutation.isPending}
                                                 >
-                                                    <Save className="h-4 w-4" />
+                                                    <Save className="h-3 w-3" />
                                                 </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={handleCancelAddRow}
                                                 >
-                                                    <X className="h-4 w-4" />
+                                                    <X className="h-3 w-3" />
                                                 </Button>
                                             </div>
                                         </TableCell>
@@ -1148,9 +1155,9 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                     rows.map((row, idx) => {
                                         const isEditing = editingRow?.[primaryKey!] === row[primaryKey!];
                                         return (
-                                            <TableRow key={idx} className={isEditing ? 'bg-muted/50' : ''}>
+                                            <TableRow key={idx} className={isEditing ? 'bg-white' : ''}>
                                                 {columns.map((column) => (
-                                                    <TableCell key={column.name}>
+                                                    <TableCell key={column.name} className="border-r border-border/50 text-xs">
                                                         {isEditing ? (
                                                             renderEditableCell(row, column)
                                                         ) : (
@@ -1158,7 +1165,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                                         )}
                                                     </TableCell>
                                                 ))}
-                                                <TableCell>
+                                                <TableCell className="border-r border-border/50 text-xs">
                                                     {isEditing ? (
                                                         <div className="flex items-center gap-1">
                                                             <Button
@@ -1167,14 +1174,14 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                                                 onClick={handleSaveEdit}
                                                                 disabled={updateRowMutation.isPending}
                                                             >
-                                                                <Save className="h-4 w-4" />
+                                                                <Save className="h-3 w-3" />
                                                             </Button>
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
                                                                 onClick={handleCancelEdit}
                                                             >
-                                                                <X className="h-4 w-4" />
+                                                                <X className="h-3 w-3" />
                                                             </Button>
                                                         </div>
                                                     ) : (
@@ -1184,14 +1191,14 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                                                                 variant="ghost"
                                                                 onClick={() => handleEdit(row)}
                                                             >
-                                                                <Pencil className="h-4 w-4" />
+                                                                <Pencil className="h-3 w-3" />
                                                             </Button>
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
                                                                 onClick={() => handleDeleteClick(row)}
                                                             >
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                                <Trash2 className="h-3 w-3 text-destructive" />
                                                             </Button>
                                                         </div>
                                                     )}
@@ -1219,7 +1226,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-3 w-3" />
                             Previous
                         </Button>
                         <Button
@@ -1229,7 +1236,7 @@ export default function TableDataEditor({ tableName, onRefresh }: TableDataEdito
                             disabled={page === totalPages}
                         >
                             Next
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-3 w-3" />
                         </Button>
                     </div>
                 </div>

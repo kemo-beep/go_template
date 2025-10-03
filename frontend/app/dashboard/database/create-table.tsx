@@ -155,7 +155,7 @@ export function CreateTableDialog({ open, onOpenChange }: CreateTableDialogProps
                                 onClick={addColumn}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Column
+                                Insert Column
                             </Button>
                         </div>
 

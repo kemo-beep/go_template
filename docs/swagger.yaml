@@ -252,6 +252,47 @@ definitions:
       name:
         type: string
     type: object
+  dancing_table.DancingtableCreateRequest:
+    properties:
+      frequency:
+        type: string
+    type: object
+  dancing_table.DancingtableResponse:
+    properties:
+      frequency:
+        type: string
+      id:
+        type: integer
+    type: object
+  dancing_table.DancingtableUpdateRequest:
+    properties:
+      frequency:
+        type: string
+    type: object
+  dancing_table.PaginationInfo:
+    properties:
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  dancing_table.PaginationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dancing_table.DancingtableResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/dancing_table.PaginationInfo'
+    type: object
   email_verification_tokens.EmailverificationtokensCreateRequest:
     properties:
       email:
@@ -1310,6 +1351,47 @@ definitions:
       success:
         type: boolean
     type: object
+  wow_table.PaginationInfo:
+    properties:
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  wow_table.PaginationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/wow_table.WowtableResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/wow_table.PaginationInfo'
+    type: object
+  wow_table.WowtableCreateRequest:
+    properties:
+      swim:
+        type: string
+    type: object
+  wow_table.WowtableResponse:
+    properties:
+      id:
+        type: integer
+      swim:
+        type: string
+    type: object
+  wow_table.WowtableUpdateRequest:
+    properties:
+      swim:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -2352,6 +2434,182 @@ paths:
       summary: Validate access token
       tags:
       - auth
+  /dancing_table:
+    get:
+      consumes:
+      - application/json
+      description: Get all dancing_tables with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Limit per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dancing_table.PaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all dancing_tables
+      tags:
+      - dancing_table
+    post:
+      consumes:
+      - application/json
+      description: Create a new dancing_table record
+      parameters:
+      - description: Create dancing_table request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dancing_table.DancingtableCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dancing_table.DancingtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create dancing_table
+      tags:
+      - dancing_table
+  /dancing_table/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a dancing_table by ID
+      parameters:
+      - description: dancing_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete dancing_table
+      tags:
+      - dancing_table
+    get:
+      consumes:
+      - application/json
+      description: Get a dancing_table by ID
+      parameters:
+      - description: dancing_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dancing_table.DancingtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get dancing_table
+      tags:
+      - dancing_table
+    put:
+      consumes:
+      - application/json
+      description: Update a dancing_table by ID
+      parameters:
+      - description: dancing_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update dancing_table request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dancing_table.DancingtableUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dancing_table.DancingtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update dancing_table
+      tags:
+      - dancing_table
   /email_verification_tokens:
     get:
       consumes:
@@ -4731,6 +4989,182 @@ paths:
       summary: Update users
       tags:
       - users
+  /wow_table:
+    get:
+      consumes:
+      - application/json
+      description: Get all wow_tables with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Limit per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/wow_table.PaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all wow_tables
+      tags:
+      - wow_table
+    post:
+      consumes:
+      - application/json
+      description: Create a new wow_table record
+      parameters:
+      - description: Create wow_table request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/wow_table.WowtableCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/wow_table.WowtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create wow_table
+      tags:
+      - wow_table
+  /wow_table/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a wow_table by ID
+      parameters:
+      - description: wow_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete wow_table
+      tags:
+      - wow_table
+    get:
+      consumes:
+      - application/json
+      description: Get a wow_table by ID
+      parameters:
+      - description: wow_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/wow_table.WowtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get wow_table
+      tags:
+      - wow_table
+    put:
+      consumes:
+      - application/json
+      description: Update a wow_table by ID
+      parameters:
+      - description: wow_table ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update wow_table request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/wow_table.WowtableUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/wow_table.WowtableResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update wow_table
+      tags:
+      - wow_table
 schemes:
 - http
 securityDefinitions:

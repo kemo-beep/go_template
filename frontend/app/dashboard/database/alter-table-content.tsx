@@ -419,11 +419,11 @@ export function AlterTableContent({ tableName }: AlterTableContentProps) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <Database className="h-5 w-5" />
+                    <h3 className="flex items-center gap-2">
+                        <Database className="h-3 w-3" />
                         Alter Table: {tableName}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                         Modify table structure by adding, editing, or removing columns. Changes will be applied via migration.
                     </p>
                 </div>

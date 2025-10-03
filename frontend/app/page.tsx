@@ -68,7 +68,7 @@ export default function Home() {
               <div className="p-3 bg-green-100 rounded-lg w-fit mb-3">
                 <Database className="h-6 w-6 text-green-600" />
               </div>
-              <CardTitle>Database Explorer</CardTitle>
+              <CardTitle >Database Explorer</CardTitle>
               <CardDescription>
                 Browse and query your PostgreSQL database
               </CardDescription>

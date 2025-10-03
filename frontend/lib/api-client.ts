@@ -161,6 +161,9 @@ export const api = {
     runMigration: (direction: 'up' | 'down', version?: string) =>
         apiClient.post('/api/v1/admin/migrations/run', { direction, version }),
     getGooseMigrations: () => apiClient.get('/api/v1/admin/migrations'),
+
+    // Foreign Key Support
+    getAllTables: () => apiClient.get('/api/v1/admin/database/tables'),
     getFeatureFlags: () => apiClient.get('/api/v1/admin/feature-flags'),
     createFeatureFlag: (name: string, enabled: boolean) =>
         apiClient.post('/api/v1/admin/feature-flags', { name, enabled }),
